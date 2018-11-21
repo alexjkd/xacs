@@ -7,13 +7,13 @@ keys:
     - ~/.ssh/id_rsa
 folders:
     -
-        map: /Users/melon/project/laravel-acs
+        map: /Users/melon/project/xacs
         to: /home/vagrant/code
 sites:
     -
-        map: laravel-acs
+        map: xacs
         to: /home/vagrant/code/public
 databases:
     - homestead
-name: laravel-acs
-hostname: laravel-acs
+name: xacs
+hostname: xacs
