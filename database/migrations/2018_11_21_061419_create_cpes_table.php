@@ -15,6 +15,9 @@ class CreateCPEsTable extends Migration
     {
         Schema::create('cpes', function (Blueprint $table) {
             $table->increments('id');
+            $table->string('connection_request_username')->unique();
+            $table->string('connection_request_password');
+            $table->string('connection_request_url');
             $table->timestamps();
         });
     }

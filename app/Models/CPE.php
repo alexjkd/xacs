@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Interfaces\ICpeContract;
+use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
 
@@ -19,6 +20,7 @@ class CPE extends Model implements ICpeContract
      * @var array
      */
     protected $hidden = [
+        'connection_request_password'
     ];
 
     protected $table = 'cpes';
@@ -45,10 +47,13 @@ class CPE extends Model implements ICpeContract
      */
     public function cpeSavedUserAuth($credential)
     {
-        $this->isLogin = true;
-        //TODO:Read DB and check the credential
+        //TODO: need to travel all the CPE table to check the connection user
+        $validated = ($credential['user'] == $this->getAttribute('connection_request_username')) &&
+            password_verify($credential['password'],$this->getAttribute('connection_request_password'));
 
-        return false;
+        $this->isLogin = $validated;
+
+        return $validated;
     }
 
     public function cpeSetParameterValues($key_values)

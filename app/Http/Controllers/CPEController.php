@@ -43,14 +43,13 @@ class CPEController extends Controller
         {
             return response('The SOAP message is not validated',403);
         }
-
     }
 
     public function CpeLogin(Request $request)
     {
         $status_code = 401;
         $credential = $this->_GetCredentialFromHeader($request);
-        if ($this->cpe->cpeBlankUserAuth($credential) ||
+        if ($this->cpe->cpeBlankUserAuth($credential)||
             $this->cpe->cpeSavedUserAuth($credential))
         {
             $status_code = 200;
