@@ -15,13 +15,16 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::post('/tr069','CPEController@ConnectionRequest');
+
 Auth::routes();
 
 Route::get('/home', 'HomeController@index')->name('home');
 
 Route::prefix('cpe')->group(function() {
-    Route::get('/acs', 'Auth\CpeLoginController@connection_request')
-        ->name('cpe.connection_request');
+    Route::get('/acs', 'Auth\CpeLoginController@connection_request');
 });
+
+
 
 Route::get('logs', '\Rap2hpoutre\LaravelLogViewer\LogViewerController@index');
