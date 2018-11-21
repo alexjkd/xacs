@@ -15,7 +15,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::post('/tr069','CPEController@ConnectionRequest');
+Route::post('/tr069','CPEController@CpeLogin');
 
 Auth::routes();
 

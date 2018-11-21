@@ -23,6 +23,6 @@ class CpeServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->bind('App\Interfaces\ICpe', 'App\Models\CPE');
+        $this->app->bind('App\Interfaces\ICpeContract', 'App\Models\CPE');
     }
 }

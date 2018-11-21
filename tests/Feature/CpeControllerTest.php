@@ -20,10 +20,15 @@ class CpeControllerTest extends TestCase
         parent::setUp();
     }
 
-    public function testConectionRequest()
+    public function testCpeLogin()
     {
-        $mock = m::mock('App\Interfaces\ICpe');
-        $this->app->instance('App\Interfaces\ICpe',$mock);
+        $mock = m::mock('App\Interfaces\ICpeContract');
+        $this->app->instance('App\Interfaces\ICpeContract',$mock);
+
+        $mock->shouldReceive('cpeBlankUserAuth')->once()->andReturn(false);
+        $mock->shouldReceive('cpeSavedUserAuth')->once()->andReturn(false);
+        $response = $this->post('http://xacs/tr069');
+        $response->assertStatus(401);
 
         $mock->shouldReceive('cpeBlankUserAuth')->once()->andReturn(true);
         $response = $this->post('http://xacs/tr069');
@@ -35,17 +40,15 @@ class CpeControllerTest extends TestCase
         $response = $this->post('http://xacs/tr069');
         $response->assertStatus(200);
 
-        $mock->shouldReceive('cpeBlankUserAuth')->once()->andReturn(false);
-        $mock->shouldReceive('cpeSavedUserAuth')->once()->andReturn(false);
-        $response = $this->post('http://xacs/tr069');
-        $response->assertStatus(401);
     }
 
+    public function testInvalid()
+    {
+
+    }
     public function tearDown()
     {
         parent::tearDown();
         m::close();
     }
-
-
 }
