@@ -1,9 +1,9 @@
 <?php
 
-namespace App;
+namespace App\Models;
 
 use App\Interfaces\ICpe;
-use http\Env\Request;
+use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
 
 class CPE extends Model implements ICpe
@@ -12,11 +12,11 @@ class CPE extends Model implements ICpe
 
     public function cpeBlankUserAuth(Request $request)
     {
-
+        return true;
     }
 
     public function cpeSavedUserAuth(Request $request)
     {
-
+        return true;
     }
 }

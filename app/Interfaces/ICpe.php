@@ -11,6 +11,7 @@ namespace App\Interfaces;
 
 use Illuminate\Http\Request;
 
+
 interface ICpe
 {
     public function cpeBlankUserAuth(Request $request);
