@@ -1,0 +1,19 @@
+ip: 192.168.10.10
+memory: 2048
+cpus: 1
+provider: parallels
+authorize: ~/.ssh/id_rsa.pub
+keys:
+    - ~/.ssh/id_rsa
+folders:
+    -
+        map: /Users/melon/project/laravel-acs
+        to: /home/vagrant/code
+sites:
+    -
+        map: laravel-acs
+        to: /home/vagrant/code/public
+databases:
+    - homestead
+name: laravel-acs
+hostname: laravel-acs
