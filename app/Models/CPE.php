@@ -8,14 +8,21 @@ use Illuminate\Database\Eloquent\Model;
 
 class CPE extends Model implements ICpeContract
 {
+    /**
+     * @var array
+     */
+    protected $fillable = [
+        'connection_request_name', 'connection_request_password',
+    ];
+
+    /**
+     * @var array
+     */
+    protected $hidden = [
+    ];
+
     protected $table = 'cpes';
-    protected $isLogin;
-
-    public function __construct()
-    {
-        $this->isLogin = false;
-    }
-
+    protected $isLogin = false;
     /**
      * @param array $credential
      * @return bool
@@ -28,7 +35,7 @@ class CPE extends Model implements ICpeContract
         {
             $validated = true;
         }
-
+        //TODO:Set next action for the session
         return $validated;
     }
 
@@ -39,6 +46,13 @@ class CPE extends Model implements ICpeContract
     public function cpeSavedUserAuth($credential)
     {
         $this->isLogin = true;
+        //TODO:Read DB and check the credential
+
         return false;
+    }
+
+    public function cpeSetParameterValues($key_values)
+    {
+        //build the SOAP body
     }
 }
