@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use \Mockery as m;
 
-class CpeControllerTest extends TestCase
+class AcsControllerTest extends TestCase
 {
     /**
      * A basic test example.

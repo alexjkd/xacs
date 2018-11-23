@@ -6,7 +6,7 @@ use App\Interfaces\ICpeContract;
 use App\Models\Inform;
 use Illuminate\Http\Request;
 
-class CPEController extends Controller
+class ACSController extends Controller
 {
     /**
      * @var ICpeContract
@@ -36,7 +36,7 @@ class CPEController extends Controller
         return $credential;
     }
 
-    public function CpeDispatcher(Request $request)
+    public function AcsDispatcher(Request $request)
     {
         $xml_soap = $this->_ParseRequest($request);
         if(!Inform::ValidSoap($xml_soap))
