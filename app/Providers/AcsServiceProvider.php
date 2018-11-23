@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
-class CpeServiceProvider extends ServiceProvider
+class AcsServiceProvider extends ServiceProvider
 {
     /**
      * Bootstrap services.
@@ -24,5 +24,6 @@ class CpeServiceProvider extends ServiceProvider
     public function register()
     {
         $this->app->bind('App\Interfaces\ICpeContract', 'App\Models\CPE');
+        $this->app->bind('App\Interfaces\IInformContract', 'App\Models\Inform');
     }
 }
