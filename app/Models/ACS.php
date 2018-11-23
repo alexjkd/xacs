@@ -20,8 +20,8 @@ class ACS extends Model
     {
         $this->dataModel = $dataModel;
         $this->dataModel->dataLoad();
-        $this->templateParameterStruct = File::get(base_path('app/Models/xmls/ParameterStruct.xml'));
-        $this->templateSetParameterRequest = File::get(base_path('app/Models/xmls/SetParamerterRequest.xml'));
+        $this->templateParameterStruct = File::get(base_path('app/Models/xml/ParameterStruct.xml'));
+        $this->templateSetParameterRequest = File::get(base_path('app/Models/xml/SetParamerterRequest.xml'));
     }
     /**
      * @param array $data
