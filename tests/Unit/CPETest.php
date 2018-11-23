@@ -9,9 +9,6 @@
 namespace Tests\Unit;
 
 use App\Models\CPE;
-use App\Models\Inform;
-
-use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 use \Mockery as m;
 
@@ -49,7 +46,7 @@ class CPETest extends TestCase
 
     }
 
-    public function testCpeCreate()
+    public function testCpeCreateEntry()
     {
         $body = array(
           //Device ID
@@ -62,30 +59,23 @@ class CPETest extends TestCase
           'SoftwareVersion'=>'V2.2.2.26_ST2',
           'ConnectionRequestURL'=>'http://79.0.0.179:7547/'
         );
-
         $InformBoot = m::mock('App\Interfaces\IInformContract');
         $InformBoot->shouldReceive('informGetBody')
                     ->once()
-                    ->andReturn($body)
-                    ->getMock();
+                    ->andReturn($body);
+
         $this->app->instance('App\Interfaces\IInformContract', $InformBoot);
 
         //$cpe = $this->app->make('App\Models\CPE');
         $cpe = new CPE();
 
-        $cpe->cpeCreate($InformBoot);
+        $cpe->cpeCreateEntry($InformBoot);
         $this->assertDatabaseHas('cpes', [
             'Manufacturer'=>'NTGR',
             'OUI'=>'08028e',
             'ProductClass'=>'V7610',
             'SerialNumber'=>'08028eef0b00'
         ]);
-
-
-    }
-    public function testCpeSetParameterValues()
-    {
-
     }
 
     public function tearDown()

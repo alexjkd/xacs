@@ -4,9 +4,6 @@ namespace App\Models;
 
 use App\Interfaces\ICpeContract;
 use App\Interfaces\IInformContract;
-use App\Models\Inform;
-use App\User;
-use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
 
 
@@ -68,7 +65,7 @@ class CPE extends Model implements ICpeContract
         return $validated;
     }
 
-    public function cpeCreate(IInformContract $inform)
+    public function cpeCreateEntry(IInformContract $inform)
     {
         $body = $inform->informGetBody();
         foreach ($body as $key=>$value)
@@ -76,13 +73,10 @@ class CPE extends Model implements ICpeContract
             $this->setAttribute($key, $value);
         }
         //TODO:Generate a ReqestUsername and RequestPassword for the device accordingly
+
         $this->setAttribute('ConnectionRequestUser',$body['ProductClass']);
         $this->setAttribute('ConnectionRequestPassword',password_hash($body['SerialNumber'],PASSWORD_DEFAULT));
-        $this->save();
-    }
 
-    public function cpeSetParameterValues($key_values)
-    {
-        //build the SOAP body
+        $this->save();
     }
 }
