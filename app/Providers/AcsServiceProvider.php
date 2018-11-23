@@ -25,5 +25,6 @@ class AcsServiceProvider extends ServiceProvider
     {
         $this->app->bind('App\Interfaces\ICpeContract', 'App\Models\CPE');
         $this->app->bind('App\Interfaces\IInformContract', 'App\Models\Inform');
+        $this->app->bind('App\Interface\IDataModelContract','App\Models\DataModel');
     }
 }
