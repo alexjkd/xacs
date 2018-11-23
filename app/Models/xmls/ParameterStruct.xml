@@ -1,0 +1,4 @@
+                <ParameterValueStruct>
+                    <Name>{@KEY}</Name>
+                    <Value xsitns:type="{@TYPE}">{@VALUE}</Value>
+                </ParameterValueStruct>

@@ -1,0 +1,13 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+    <soapenv:Header>
+        <cwmp:ID soapenv:mustUnderstand="1" xmlns:cwmp="urn:dslforum-org:cwmp-1-2">1</cwmp:ID>
+    </soapenv:Header>
+    <soapenv:Body>
+        <cwmp:SetParameterValues xmlns:xsitns="http://www.w3.org/2001/XMLSchema-instance" xmlns:xstns="http://www.w3.org/2001/XMLSchema" xmlns:cwmp="urn:dslforum-org:cwmp-1-2">
+            <ParameterList soapenc:arrayType="cwmp:ParameterValueStruct[{@PARAMETER_NUM}]" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/">
+{@PARAMETER_VALUE_STRUCT}
+            </ParameterList>
+            <ParameterKey>1</ParameterKey>
+        </cwmp:SetParameterValues>
+    </soapenv:Body>
+</soapenv:Envelope>
