@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use App\Interfaces\ICpeContract;
+use App\Interfaces\IInformContract;
+use App\Models\Inform;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Model;
+
 
 class CPE extends Model implements ICpeContract
 {
@@ -13,18 +16,26 @@ class CPE extends Model implements ICpeContract
      * @var array
      */
     protected $fillable = [
-        'connection_request_name', 'connection_request_password',
+        'ConnectionRequestUser',
+        'ConnectionRequestPassword',
+        'Manufacturer',
+        'OUI',
+        'ProductClass',
+        'SerialNumber',
+        'ConnectionRequestURL'
     ];
 
     /**
      * @var array
      */
     protected $hidden = [
-        'connection_request_password'
+        'ConnectionRequestPassword'
     ];
 
     protected $table = 'cpes';
     protected $isLogin = false;
+    protected $inform;
+
     /**
      * @param array $credential
      * @return bool
@@ -48,12 +59,26 @@ class CPE extends Model implements ICpeContract
     public function cpeSavedUserAuth($credential)
     {
         //TODO: need to travel all the CPE table to check the connection user
-        $validated = ($credential['user'] == $this->getAttribute('connection_request_username')) &&
-            password_verify($credential['password'],$this->getAttribute('connection_request_password'));
+
+        $validated = ($credential['user'] == $this->getAttribute('ConnectionRequestUser')) &&
+            password_verify($credential['password'],$this->getAttribute('ConnectionRequestPassword'));
 
         $this->isLogin = $validated;
 
         return $validated;
+    }
+
+    public function cpeCreate(IInformContract $inform)
+    {
+        $body = $inform->informGetBody();
+        foreach ($body as $key=>$value)
+        {
+            $this->setAttribute($key, $value);
+        }
+        //TODO:Generate a ReqestUsername and RequestPassword for the device accordingly
+        $this->setAttribute('ConnectionRequestUser',$body['ProductClass']);
+        $this->setAttribute('ConnectionRequestPassword',password_hash($body['SerialNumber'],PASSWORD_DEFAULT));
+        $this->save();
     }
 
     public function cpeSetParameterValues($key_values)
