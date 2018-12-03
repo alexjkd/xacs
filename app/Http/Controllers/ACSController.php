@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Interfaces\ICpeContract;
 use App\Models\Inform;
+use App\Models\Facades\SoapFacade;
 use Illuminate\Http\Request;
 
 class ACSController extends Controller
@@ -26,9 +27,14 @@ class ACSController extends Controller
 
     protected function _GetCredentialFromHeader(Request $request)
     {
-        $authorization = $request->headers->get('authorization');
-        $user = $request->headers->get('php-auth-user');
-        $password = $request->headers->get('php-auth-pw');
+        $authorization = '';
+
+        if ($request->server->getHeaders()['AUTHORIZATION'])
+        {
+            $authorization = $request->server->getHeaders()['AUTHORIZATION'];
+        }
+        $user = $request->server->getHeaders()['PHP_AUTH_USER'];
+        $password = $request->server->getHeaders()['PHP_AUTH_PW'];
 
         $credential = array('authentication'=>$authorization,
                         'user'=>$user,'password'=>$password);
@@ -36,17 +42,36 @@ class ACSController extends Controller
         return $credential;
     }
 
+    protected function _withAuthentication(Request $request)
+    {
+        $withHttpAuth = (!empty($request->server->getHeaders()['HTTP_AUTHORIZATION']) ||
+                        !empty($request->server->getHeaders()['AUTHORIZATION']));
+
+        return $withHttpAuth;
+    }
+
     public function AcsDispatcher(Request $request)
     {
-        $xml_soap = $this->_ParseRequest($request);
-        if(!Inform::ValidSoap($xml_soap))
+        //TODO:It should not send 403 when ending session with an empty post
+        if($request->getContent() && !$this->_withAuthentication($request))
         {
-            return response('The SOAP message is not validated',403);
+            return response('Unauthenticated',401);
         }
+        else if ($request->getContent() && $this->_withAuthentication($request))
+        {
+            return response('',$this->CpeLogin($request));
+        }
+
+        return response('Unknown Request',403);
     }
 
     public function CpeLogin(Request $request)
     {
+        if (!SoapFacade::ValidSoap($request->getContent()))
+        {
+            return response('The SOAP message is not validated',403);
+        }
+
         $status_code = 401;
         $credential = $this->_GetCredentialFromHeader($request);
         if ($this->cpe->cpeBlankUserAuth($credential)||
@@ -54,7 +79,7 @@ class ACSController extends Controller
         {
             $status_code = 200;
         }
-        return response('',$status_code);
+        return $status_code;
     }
 
 }
