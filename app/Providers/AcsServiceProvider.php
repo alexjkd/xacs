@@ -26,5 +26,11 @@ class AcsServiceProvider extends ServiceProvider
         $this->app->bind('App\Interfaces\ICpeContract', 'App\Models\CPE');
         $this->app->bind('App\Interfaces\IInformContract', 'App\Models\Inform');
         $this->app->bind('App\Interface\IDataModelContract','App\Models\DataModel');
+        /*
+        $this->app->singleton('App\Models\ACS', function ($app) {
+            return new \App\Models\ACS($app->make('App\Models\Soap'));
+        });
+        */
+        $this->app->bind('soap', \App\Models\SoapEngine::class);
     }
 }
