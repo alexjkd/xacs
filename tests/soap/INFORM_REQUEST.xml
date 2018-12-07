@@ -1,0 +1,67 @@
+<SOAP-ENV:Envelope
+    xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+    xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:cwmp="urn:dslforum-org:cwmp-1-2">
+    <SOAP-ENV:Header>
+        <cwmp:ID SOAP-ENV:mustUnderstand="1">1641837687</cwmp:ID>
+    </SOAP-ENV:Header>
+    <SOAP-ENV:Body>
+        <cwmp:Inform>
+            <DeviceId>
+                <Manufacturer>NETGEAR</Manufacturer>
+                <OUI>08028E</OUI>
+                <ProductClass>V7610</ProductClass>
+                <SerialNumber>08028eef0b00</SerialNumber>
+            </DeviceId>
+            <Event SOAP-ENC:arrayType="cwmp:EventStruct[2]">
+                <EventStruct>
+                    <EventCode>0 BOOTSTRAP</EventCode>
+                    <CommandKey></CommandKey>
+                </EventStruct>
+                <EventStruct>
+                    <EventCode>1 BOOT</EventCode>
+                    <CommandKey></CommandKey>
+                </EventStruct>
+            </Event>
+            <MaxEnvelopes>1</MaxEnvelopes>
+            <CurrentTime>2018-06-26T13:19:13+00:00</CurrentTime>
+            <RetryCount>0</RetryCount>
+            <ParameterList SOAP-ENC:arrayType="cwmp:ParameterValueStruct[0008]">
+                <ParameterValueStruct>
+                    <Name>Device.RootDataModelVersion</Name>
+                    <Value xsi:type="xsd:string"></Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.DeviceInfo.HardwareVersion</Name>
+                    <Value xsi:type="xsd:string">V7610A</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.DeviceInfo.SoftwareVersion</Name>
+                    <Value xsi:type="xsd:string">V2.2.2.26_ST2</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.DeviceInfo.ProvisioningCode</Name>
+                    <Value xsi:type="xsd:string">Telstra1</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.ManagementServer.ParameterKey</Name>
+                    <Value xsi:type="xsd:string">(null)</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.ManagementServer.ConnectionRequestURL</Name>
+                    <Value xsi:type="xsd:string">http://79.0.0.179:7547/bf93a276cc0501c7161c29beb4c32b7d</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.X_00600F_wansupervision.ActiveWANInterface</Name>
+                    <Value xsi:type="xsd:string">Ethernet IPoE</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.X_00600F_wansupervision.MBBUSBDetected</Name>
+                    <Value xsi:type="xsd:int">0</Value>
+                </ParameterValueStruct>
+            </ParameterList>
+        </cwmp:Inform>
+    </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

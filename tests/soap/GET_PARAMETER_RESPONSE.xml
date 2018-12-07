@@ -1,0 +1,128 @@
+<SOAP-ENV:Envelope
+    xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+    xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:cwmp="urn:dslforum-org:cwmp-1-2">
+    <SOAP-ENV:Header>
+        <cwmp:ID SOAP-ENV:mustUnderstand="1">1</cwmp:ID>
+    </SOAP-ENV:Header>
+    <SOAP-ENV:Body>
+        <cwmp:GetParameterValuesResponse>
+            <ParameterList SOAP-ENC:arrayType="cwmp:ParameterValueStruct[0028]">
+                <ParameterValueStruct>
+                    <Name>Device.Time.Enable</Name>
+                    <Value xsi:type="xsd:boolean">1</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.Status</Name>
+                    <Value xsi:type="xsd:string">Synchronized</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.NTPServer1</Name>
+                    <Value xsi:type="xsd:string">Tic.ntp.telstra.net</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.NTPServer2</Name>
+                    <Value xsi:type="xsd:string">0.au.pool.ntp.org</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.NTPServer3</Name>
+                    <Value xsi:type="xsd:string"></Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.NTPServer4</Name>
+                    <Value xsi:type="xsd:string"></Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.NTPServer5</Name>
+                    <Value xsi:type="xsd:string"></Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.CurrentLocalTime</Name>
+                    <Value xsi:type="xsd:dateTime">2018-06-26T13:19:34+00:00</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.LocalTimeZone</Name>
+                    <Value xsi:type="xsd:string">AEST-1000</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.X_BROADCOM_COM_LocalTimeZoneName</Name>
+                    <Value xsi:type="xsd:string">Canberra, Melbourne, Sydney</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.X_BROADCOM_COM_DaylightSavingsUsed</Name>
+                    <Value xsi:type="xsd:boolean">0</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.X_BROADCOM_COM_DaylightSavingsStart</Name>
+                    <Value xsi:type="xsd:dateTime">2018-06-26T13:19:34+00:00</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.X_BROADCOM_COM_DaylightSavingsEnd</Name>
+                    <Value xsi:type="xsd:dateTime">2018-06-26T13:19:34+00:00</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.IsManual</Name>
+                    <Value xsi:type="xsd:boolean">0</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.ManualDateTimeStr</Name>
+                    <Value xsi:type="xsd:string"></Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.from_month</Name>
+                    <Value xsi:type="xsd:int">10</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.from_week</Name>
+                    <Value xsi:type="xsd:int">1</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.from_weekday</Name>
+                    <Value xsi:type="xsd:int">0</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.from_day</Name>
+                    <Value xsi:type="xsd:int">0</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.from_hour</Name>
+                    <Value xsi:type="xsd:int">2</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.to_month</Name>
+                    <Value xsi:type="xsd:int">4</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.to_week</Name>
+                    <Value xsi:type="xsd:int">1</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.to_weekday</Name>
+                    <Value xsi:type="xsd:int">0</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.to_day</Name>
+                    <Value xsi:type="xsd:int">0</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.to_hour</Name>
+                    <Value xsi:type="xsd:int">2</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.dst_offset</Name>
+                    <Value xsi:type="xsd:int">0</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.from_minute</Name>
+                    <Value xsi:type="xsd:int">0</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.Time.to_minute</Name>
+                    <Value xsi:type="xsd:int">0</Value>
+                </ParameterValueStruct>
+            </ParameterList>
+        </cwmp:GetParameterValuesResponse>
+    </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
