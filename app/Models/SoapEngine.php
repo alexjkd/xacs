@@ -83,8 +83,8 @@ class SoapEngine
     {
         return SoapEngine::INFROM_BOOTSTRAP;
     }
-//----------------------------------------------------------------------------
-    public function soapParseInformRequest($soap)
+
+    public static function ParseInformRequest($soap)
     {
         $xml = simplexml_load_string($soap);
         $ns = $xml->getNamespaces(true);
@@ -117,7 +117,7 @@ class SoapEngine
 
         return $data;
     }
-
+//----------------------------------------------------------------------------
     public function soapBuildInformResponse($ID)
     {
         $informResponse = $this->templateInformResponse;

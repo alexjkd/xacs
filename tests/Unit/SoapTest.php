@@ -62,8 +62,7 @@ class SoapTest extends TestCase
             ),
         );
 
-        $engine = new SoapEngine();
-        $data = $engine->soapParseInformRequest($soap);
+        $data = SoapEngine::ParseInformRequest($soap);
 
         $this->assertEquals($expected_data, $data);
 
