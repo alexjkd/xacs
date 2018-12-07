@@ -14,15 +14,6 @@ use Illuminate\Http\Request;
 
 interface ICpeContract
 {
-    /**
-     * @param array $credential
-     * @return bool
-     */
-    public function cpeBlankUserAuth($credential);
-
-    /**
-     * @param array $credential
-     * @return bool
-     */
-    public function cpeSavedUserAuth($credential);
+    public function cpeCreateEntry(IInformContract $inform);
+    public function cpeLogin($credential);
 }

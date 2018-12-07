@@ -26,26 +26,22 @@ class CPETest extends TestCase
         ]);
     }
 
-    public function testCpeBlankUserAuth()
+    public function testCpeLogin()
     {
-         $authentication = 'Basic ' . base64_encode(':');
-         $credential=array('authentication'=>$authentication);
+        $user_test = array(
+            'name'=>'test',
+            'password'=>'secret',
+            'authentication'=>'Basic '. base64_encode('test:test'),
+        );
+        $user_invalid=array(
+            'name'=>'test',
+            'password'=>'secret1',
+            'authentication'=>'Basic '. base64_encode('test:test'),
+        );
 
-         $result = $this->cpe->CpeBlankUserAuth($credential);
-         $this->assertTrue($result);
+        $this->assertEquals(CPE::STATUS_SUCCEEDED, $this->cpe->cpeLogin($user_test));
+        $this->assertEquals(CPE::STATUS_FAILED, $this->cpe->cpeLogin($user_invalid));
     }
-
-    public function testCpeSavedUserAuth()
-    {
-        $user = 'test';
-        $password = 'secret';
-        $credential = array('user'=>$user, 'password'=>$password);
-
-        $result = $this->cpe->CpeSavedUserAuth($credential);
-        $this->assertTrue($result);
-
-    }
-
     public function testCpeCreateEntry()
     {
         $body = array(

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Interfaces\ICpeContract;
+use App\Models\CPE;
 use App\Models\Inform;
 use App\Models\Facades\SoapFacade;
+use App\Models\SoapEngine;
 use Illuminate\Http\Request;
 
 class ACSController extends Controller
@@ -33,11 +35,11 @@ class ACSController extends Controller
         {
             $authorization = $request->server->getHeaders()['AUTHORIZATION'];
         }
-        $user = $request->server->getHeaders()['PHP_AUTH_USER'];
+        $name = $request->server->getHeaders()['PHP_AUTH_USER'];
         $password = $request->server->getHeaders()['PHP_AUTH_PW'];
 
         $credential = array('authentication'=>$authorization,
-                        'user'=>$user,'password'=>$password);
+                        'name'=>$name,'password'=>$password);
 
         return $credential;
     }
@@ -59,27 +61,26 @@ class ACSController extends Controller
         }
         else if ($request->getContent() && $this->_withAuthentication($request))
         {
-            return response('',$this->CpeLogin($request));
-        }
+            if (!SoapFacade::ValidSoap($request->getContent()))
+            {
+                abort(403);
+            }
+            $credential = $this->_GetCredentialFromHeader($request);
+            $blankAuthentication = 'Basic ' . base64_encode(':');
+            $isBlankUser = $credential['authentication'] === $blankAuthentication;
 
-        return response('Unknown Request',403);
+            if ($isBlankUser
+                && SoapFacade::GetSoapType($request->getContent()) == SoapEngine::INFROM_BOOTSTRAP)
+            {
+                //create the CPE
+                return response('',200);
+            }
+            $status = $this->cpe->cpeLogin($credential);
+            return response('',$status);
+        }
+        abort(403);
     }
 
-    public function CpeLogin(Request $request)
-    {
-        if (!SoapFacade::ValidSoap($request->getContent()))
-        {
-            return response('The SOAP message is not validated',403);
-        }
 
-        $status_code = 401;
-        $credential = $this->_GetCredentialFromHeader($request);
-        if ($this->cpe->cpeBlankUserAuth($credential)||
-            $this->cpe->cpeSavedUserAuth($credential))
-        {
-            $status_code = 200;
-        }
-        return $status_code;
-    }
 
 }

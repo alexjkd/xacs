@@ -32,32 +32,18 @@ class CPE extends Model implements ICpeContract
     protected $table = 'cpes';
     protected $isLogin = false;
     protected $inform;
+    const STATUS_FAILED=401;
+    const STATUS_SUCCEEDED=200;
 
     /**
      * @param array $credential
      * @return bool
      */
-    public function cpeBlankUserAuth($credential)
-    {
-        $validated = false;
-        $valid_with_empty = 'Basic ' . base64_encode(':');
-        if ($credential['authentication'] == $valid_with_empty)
-        {
-            $validated = true;
-        }
-        //TODO:Set next action for the session
-        return $validated;
-    }
-
-    /**
-     * @param array $credential
-     * @return bool
-     */
-    public function cpeSavedUserAuth($credential)
+    private function _SavedUserAuth($credential)
     {
         //TODO: need to travel all the CPE table to check the connection user
 
-        $validated = ($credential['user'] == $this->getAttribute('ConnectionRequestUser')) &&
+        $validated = ($credential['name'] == $this->getAttribute('ConnectionRequestUser')) &&
             password_verify($credential['password'],$this->getAttribute('ConnectionRequestPassword'));
 
         $this->isLogin = $validated;
@@ -78,5 +64,16 @@ class CPE extends Model implements ICpeContract
         $this->setAttribute('ConnectionRequestPassword',password_hash($body['SerialNumber'],PASSWORD_DEFAULT));
 
         $this->save();
+    }
+
+    public function cpeLogin($credential)
+    {
+        $status_code = CPE::STATUS_FAILED;
+
+        if ($this->_SavedUserAuth($credential))
+        {
+            $status_code = CPE::STATUS_SUCCEEDED;
+        }
+        return $status_code;
     }
 }
