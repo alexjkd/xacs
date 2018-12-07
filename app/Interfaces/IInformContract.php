@@ -11,7 +11,5 @@ namespace App\Interfaces;
 
 interface IInformContract
 {
-    public function informBuildBody($soap_xml);
-    public function informBodyAttribute($key,$value);
     public function informGetBody();
 }
