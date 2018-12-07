@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class CPE extends Model implements ICpeContract
 {
+    const STATUS_FAILED=401;
+    const STATUS_SUCCEEDED=200;
+
     /**
      * @var array
      */
@@ -31,9 +34,42 @@ class CPE extends Model implements ICpeContract
 
     protected $table = 'cpes';
     protected $isLogin = false;
-    protected $inform;
-    const STATUS_FAILED=401;
-    const STATUS_SUCCEEDED=200;
+    protected $actionQueue;
+    protected $cpe_info;
+
+    /*
+     * $expected_data = array(
+            'ID'=>1641837687,
+            'DeviceId'=> array(
+                'Manufacturer'=>'NETGEAR',
+                'OUI'=>'08028E',
+                'ProductClass'=>'V7610',
+                'SerialNumber'=>'08028eef0b00',
+            ),
+            'EventStruct'=>array(
+                'BOOTSTRAP'=>0,
+                'BOOT'=>1,
+            ),
+            'MaxEnvelopes'=>1,
+            'CurrentTime'=>'2018-06-26T13:19:13+00:00',
+            'RetryCount'=>0,
+            'ParameterList'=>array(
+                'Device.RootDataModelVersion'=>'',
+                'Device.DeviceInfo.HardwareVersion'=>'V7610A',
+                'Device.DeviceInfo.SoftwareVersion'=>'V2.2.2.26_ST2',
+                'Device.DeviceInfo.ProvisioningCode'=>'Telstra1',
+                'Device.ManagementServer.ParameterKey'=>'(null)',
+                'Device.ManagementServer.ConnectionRequestURL'=>
+                    'http://79.0.0.179:7547/bf93a276cc0501c7161c29beb4c32b7d',
+                'Device.X_00600F_wansupervision.ActiveWANInterface'=>'Ethernet IPoE',
+                'Device.X_00600F_wansupervision.MBBUSBDetected'=>0,
+            ),
+        );*/
+
+    public function __construct($attributes = array())
+    {
+        parent::__construct($attributes);
+    }
 
     /**
      * @param array $credential
@@ -51,6 +87,26 @@ class CPE extends Model implements ICpeContract
         return $validated;
     }
 
+    public function cpeCreate($cpe_info)
+    {
+        //$cpe_info = $this->cpe_info;
+        if (empty($cpe_info))
+        {
+            return null;
+        }
+
+        foreach ($cpe_info['DeviceId'] as $key=>$value)
+        {
+            $this->setAttribute($key, $value);
+        }
+
+        $this->setAttribute('ConnectionRequestUser',$cpe_info['DeviceId']['ProductClass']);
+        $this->setAttribute('ConnectionRequestPassword',password_hash($cpe_info['DeviceId']['SerialNumber'],PASSWORD_DEFAULT));
+
+        $this->save();
+        return $this;
+    }
+
     public function cpeCreateEntry(IInformContract $inform)
     {
         $body = $inform->informGetBody();
@@ -58,7 +114,7 @@ class CPE extends Model implements ICpeContract
         {
             $this->setAttribute($key, $value);
         }
-        //TODO:Generate a ReqestUsername and RequestPassword for the device accordingly
+        //TODO: Should generate a ReqestUsername and RequestPassword for the device accordingly
 
         $this->setAttribute('ConnectionRequestUser',$body['ProductClass']);
         $this->setAttribute('ConnectionRequestPassword',password_hash($body['SerialNumber'],PASSWORD_DEFAULT));
@@ -76,4 +132,26 @@ class CPE extends Model implements ICpeContract
         }
         return $status_code;
     }
+/*
+    public function cpeInitActionQueue()
+    {
+
+    }
+
+    public function cpeActionEnqueue()
+    {
+
+    }
+
+    public function cpeActionDequeue()
+    {
+
+    }
+*/
+    public function cpeActionNextStep()
+    {
+
+    }
+
+
 }

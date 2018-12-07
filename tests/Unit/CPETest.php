@@ -62,7 +62,6 @@ class CPETest extends TestCase
 
         $this->app->instance('App\Interfaces\IInformContract', $InformBoot);
 
-        //$cpe = $this->app->make('App\Models\CPE');
         $cpe = new CPE();
 
         $cpe->cpeCreateEntry($InformBoot);

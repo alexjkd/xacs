@@ -20,6 +20,8 @@ class AcsControllerTest extends TestCase
         parent::setUp();
         SoapFacade::shouldReceive('ValidSoap')->andReturn(true);
         SoapFacade::shouldReceive('GetSoapType')->andReturn(SoapEngine::INFROM_BOOTSTRAP);
+        SoapFacade::getFacadeRoot()->makePartial();
+        //SoapFacade::shouldReceive('ParseInformRequest')->andReturnSelf();
     }
 
     public function testRequestNoAuthHeader()
@@ -32,22 +34,26 @@ class AcsControllerTest extends TestCase
 
     public function testRequestEmptyUser()
     {
+        $inform_request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
         $response = $this->call('POST','http://xacs/tr069',[],[],[],
-            ['HTTP_AUTHORIZATION'=>'Basic ' . base64_encode(':'),'PHP_AUTH_USER'=>'','PHP_AUTH_PW'=>''],'xml');
+            ['HTTP_AUTHORIZATION'=>'Basic ' . base64_encode(':'),
+             'PHP_AUTH_USER'=>'',
+             'PHP_AUTH_PW'=>''],$inform_request);
+
         $response->assertStatus(200);
     }
 
+    /**
+     * @depends testRequestEmptyUser
+     */
     public function testRequestSavedUser()
     {
-        $mock_cpe = m::mock('App\Interfaces\ICpeContract')->makePartial();
-        $mock_cpe->shouldReceive('cpeLogin')->andReturn(CPE::STATUS_SUCCEEDED);
-        $this->app->instance('App\Interfaces\ICpeContract',$mock_cpe);
-
         $response = $this->call('POST','http://xacs/tr069',[],[],[],
-            ['HTTP_AUTHORIZATION'=>'Basic ' . base64_encode('test:test'),
-             'PHP_AUTH_USER'=>'test',
-             'PHP_AUTH_PW'=>'test'], 'xml');
+            ['HTTP_AUTHORIZATION'=>'Basic ' . base64_encode('V7610:08028eef0b00'),
+             'PHP_AUTH_USER'=>'V7610',
+             'PHP_AUTH_PW'=>'08028eef0b00'], 'xml');
         $response->assertStatus(200);
+        $this->artisan('migrate:refresh');
     }
 
     public function testRequestNoContent()

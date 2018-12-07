@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Interfaces\ICpeContract;
-use App\Models\CPE;
-use App\Models\Inform;
 use App\Models\Facades\SoapFacade;
 use App\Models\SoapEngine;
+use App\Models\CPE;
+
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 
 class ACSController extends Controller
@@ -15,11 +16,6 @@ class ACSController extends Controller
      * @var ICpeContract
      */
     protected $cpe;
-
-    public function __construct(ICpeContract $cpe)
-    {
-        $this->cpe = $cpe;
-    }
 
     protected function _ParseRequest(Request $request)
     {
@@ -54,7 +50,6 @@ class ACSController extends Controller
 
     public function AcsDispatcher(Request $request)
     {
-        //TODO:It should not send 403 when ending session with an empty post
         if($request->getContent() && !$this->_withAuthentication($request))
         {
             return response('Unauthenticated',401);
@@ -68,15 +63,40 @@ class ACSController extends Controller
             $credential = $this->_GetCredentialFromHeader($request);
             $blankAuthentication = 'Basic ' . base64_encode(':');
             $isBlankUser = $credential['authentication'] === $blankAuthentication;
-
             if ($isBlankUser
                 && SoapFacade::GetSoapType($request->getContent()) == SoapEngine::INFROM_BOOTSTRAP)
             {
-                //create the CPE
-                return response('',200);
+                Log::info('Login with blank user and response with 200 OK');
+                response('',200);
+                Log::info('Create the CPE and set next action to SetParameter for the credential to remote');
+                //TODO:Create CPE and build action chain
+                $this->cpe = new CPE();
+                $this->cpe->cpeCreate(SoapFacade::ParseInformRequest($request->getContent()));
+                return;
+            }
+            Log::info("Login CPE with ".$credential['name'].':'.$credential['password']);
+            $this->cpe = CPE::where('ConnectionRequestUser','=', $credential['name'])->first();
+            if (empty($this->cpe))
+            {
+                Log::info('Can not find CPE with credential in Request');
+                abort(401);
+                return;
             }
             $status = $this->cpe->cpeLogin($credential);
-            return response('',$status);
+            if($status == CPE::STATUS_SUCCEEDED)
+            {
+                Log::info('Request with valid credential and response with 200 OK');
+                response('',200);
+                Log::info('Find job which CPE attached to get next steps');
+                return;
+            }
+            else if ($status == CPE::STATUS_FAILED)
+            {
+                Log::info('Request with invalid password and abort the request with HTTP 401 code');
+                abort(401);
+                return;
+            }
+
         }
         abort(403);
     }
