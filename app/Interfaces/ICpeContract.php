@@ -14,6 +14,6 @@ use Illuminate\Http\Request;
 
 interface ICpeContract
 {
-    public function cpeCreateEntry(IInformContract $inform);
+    public function cpeCreate($cpe_info);
     public function cpeLogin($credential);
 }

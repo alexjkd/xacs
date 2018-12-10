@@ -20,14 +20,14 @@ class CPETest extends TestCase
     public function setUp()
     {
         parent::setUp();
-
-        $this->cpe = factory('App\Models\CPE')->create([
-            'ConnectionRequestUser'=>'test'
-        ]);
     }
 
     public function testCpeLogin()
     {
+        $this->cpe = factory('App\Models\CPE')->create([
+            'ConnectionRequestUser'=>'test'
+        ]);
+
         $user_test = array(
             'name'=>'test',
             'password'=>'secret',
@@ -42,32 +42,45 @@ class CPETest extends TestCase
         $this->assertEquals(CPE::STATUS_SUCCEEDED, $this->cpe->cpeLogin($user_test));
         $this->assertEquals(CPE::STATUS_FAILED, $this->cpe->cpeLogin($user_invalid));
     }
-    public function testCpeCreateEntry()
-    {
-        $body = array(
-          //Device ID
-          'Manufacturer'=>'NTGR',
-          'OUI'=>'08028e',
-          'ProductClass'=>'V7610',
-          'SerialNumber'=>'08028eef0b00',
-          //Parameter List
-          'HardwareVersion'=>'abc',
-          'SoftwareVersion'=>'V2.2.2.26_ST2',
-          'ConnectionRequestURL'=>'http://79.0.0.179:7547/'
-        );
-        $InformBoot = m::mock('App\Interfaces\IInformContract');
-        $InformBoot->shouldReceive('informGetBody')
-                    ->once()
-                    ->andReturn($body);
 
-        $this->app->instance('App\Interfaces\IInformContract', $InformBoot);
+
+
+    public function testCpeCreate()
+    {
+        $cpe_info = array(
+            'ID'=>1641837687,
+            'DeviceId'=> array(
+                'Manufacturer'=>'NETGEAR',
+                'OUI'=>'08028E',
+                'ProductClass'=>'V7610',
+                'SerialNumber'=>'08028eef0b00',
+            ),
+            'EventStruct'=>array(
+                'BOOTSTRAP'=>0,
+                'BOOT'=>1,
+            ),
+            'MaxEnvelopes'=>1,
+            'CurrentTime'=>'2018-06-26T13:19:13+00:00',
+            'RetryCount'=>0,
+            'ParameterList'=>array(
+                'Device.RootDataModelVersion'=>'',
+                'Device.DeviceInfo.HardwareVersion'=>'V7610A',
+                'Device.DeviceInfo.SoftwareVersion'=>'V2.2.2.26_ST2',
+                'Device.DeviceInfo.ProvisioningCode'=>'Telstra1',
+                'Device.ManagementServer.ParameterKey'=>'(null)',
+                'Device.ManagementServer.ConnectionRequestURL'=>
+                    'http://79.0.0.179:7547/bf93a276cc0501c7161c29beb4c32b7d',
+                'Device.X_00600F_wansupervision.ActiveWANInterface'=>'Ethernet IPoE',
+                'Device.X_00600F_wansupervision.MBBUSBDetected'=>0,
+            ),
+        );
 
         $cpe = new CPE();
 
-        $cpe->cpeCreateEntry($InformBoot);
+        $cpe->cpeCreate($cpe_info);
         $this->assertDatabaseHas('cpes', [
-            'Manufacturer'=>'NTGR',
-            'OUI'=>'08028e',
+            'Manufacturer'=>'NETGEAR',
+            'OUI'=>'08028E',
             'ProductClass'=>'V7610',
             'SerialNumber'=>'08028eef0b00'
         ]);

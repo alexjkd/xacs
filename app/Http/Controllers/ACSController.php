@@ -87,7 +87,7 @@ class ACSController extends Controller
             {
                 Log::info('Request with valid credential and response with 200 OK');
                 response('',200);
-                Log::info('Find job which CPE attached to get next steps');
+                Log::info('Find CPE and get action list for next steps');
                 return;
             }
             else if ($status == CPE::STATUS_FAILED)
