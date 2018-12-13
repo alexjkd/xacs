@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Facades\SoapFacade;
 use App\Models\SoapAction;
+use App\Models\SoapEngine;
 use Tests\TestCase;
 use \Mockery as m;
 
@@ -18,7 +19,7 @@ class AcsControllerTest extends TestCase
     {
         parent::setUp();
         SoapFacade::shouldReceive('ValidSoap')->andReturn(true);
-        SoapFacade::shouldReceive('GetSoapType')->andReturn(SoapAction::EVENT_INFORM_BOOTSTRAP);
+        SoapFacade::shouldReceive('GetSoapType')->andReturn(SoapEngine::INFROM_BOOTSTRAP);
         SoapFacade::getFacadeRoot()->makePartial();
 
         //SoapFacade::shouldReceive('ParseInformRequest')->andReturnSelf();

@@ -78,8 +78,7 @@ class SoapTest extends TestCase
         $expected_response = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
         $this->assertTrue(SoapFacade::ValidSoap($expected_response));
 
-        $engine = new SoapEngine();
-        $response = $engine->soapBuildInformResponse($data['ID']);
+        $response = SoapEngine::soapBuildInformResponse($data['ID']);
         $this->assertEquals($expected_response, $response);
     }
 

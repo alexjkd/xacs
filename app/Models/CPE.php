@@ -35,7 +35,7 @@ class CPE extends Model implements ICpeContract
 
     protected $table = 'cpes';
     protected $isLogin = false;
-    protected $initialEvents;
+    protected $actionsTodo;
     protected $cpe_info;
 
     public function __construct($attributes = array())
@@ -46,9 +46,17 @@ class CPE extends Model implements ICpeContract
 
     private function _setInitialEvents()
     {
-        $this->initialEvents = array(
-          '0'=>SoapAction::EVENT_HTTP_AUTH,
-          '1'=>SoapAction::EVENT_INFORM_BOOTSTRAP,
+        $this->actionsTodo = array(
+          [
+              'event'=>SoapAction::EVENT_HTTP_AUTH,
+              'stage'=>SoapAction::STAGE_INITIAL,
+              'data'=>''
+          ],
+          [
+              'event'=>SoapAction::EVENT_BOOTSTRAP,
+              'stage'=>SoapAction::STAGE_INITIAL,
+              'data'=>'',
+          ],
         );
     }
     /**
@@ -76,6 +84,18 @@ class CPE extends Model implements ICpeContract
         $this->action()->save($action);
     }
 
+    private function _buildToDoActionChain()
+    {
+        $actionsTodo = $this->actionsTodo;
+        foreach ($actionsTodo as $index=>$action)
+        {
+            $this->_actionInsert($action['event'],
+                                 $action['stage'],
+                                 $action['data']);
+        }
+
+    }
+
     public function cpeCreate($cpe_info)
     {
         if (empty($cpe_info))
@@ -94,10 +114,7 @@ class CPE extends Model implements ICpeContract
                              password_hash($cpe_info['DeviceId']['SerialNumber'],
                              PASSWORD_DEFAULT));
         $this->save();
-
-        $this->_actionInsert(SoapAction::EVENT_HTTP_AUTH,SoapAction::STAGE_INITIAL);
-        $this->_actionInsert(SoapAction::EVENT_INFORM_BOOTSTRAP,SoapAction::STAGE_INITIAL);
-
+        $this->_buildToDoActionChain();
 
         return $this;
     }
@@ -118,7 +135,7 @@ class CPE extends Model implements ICpeContract
         return $this->hasMany(SoapAction::class,'fk_cpe_id','id');
     }
 
-    public function cpeGetActions()
+    public function cpeGetReadyActions()
     {
         $actionList = $this->action()->select('event','stage','status')
             ->where('status',SoapAction::STATUS_READY)->get();
@@ -126,9 +143,18 @@ class CPE extends Model implements ICpeContract
         return $actionList;
     }
 
-    public function cpeGetInitialEvents()
+    public function cpeGetActionsTodo()
     {
-        return $this->initialEvents;
+        return $this->actionsTodo;
+    }
+
+    /**
+     * @param \App\Models\SoapAction $action
+     * @return array
+     */
+    public function cpeDoActionEvent(SoapAction $action)
+    {
+        return $soap;
     }
 
     public function cpeHandleSoap($soap)

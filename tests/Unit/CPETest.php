@@ -9,6 +9,7 @@
 namespace Tests\Unit;
 
 use App\Models\CPE;
+use App\Models\Facades\SoapFacade;
 use App\Models\SoapAction;
 use Tests\TestCase;
 //use \Mockery as m;
@@ -95,19 +96,24 @@ class CPETest extends TestCase
      * @param CPE $cpe
      * @return array
      */
-    public function testCpeGetInitialEvents($cpe)
+    public function testCepInitialTodoActions($cpe)
     {
-
-         $events = array(
+         $initialEvents = array(
             '0'=>SoapAction::EVENT_HTTP_AUTH,
-            '1'=>SoapAction::EVENT_INFORM_BOOTSTRAP,
+            '1'=>SoapAction::EVENT_BOOTSTRAP,
         );
 
-        $initialEvents = $cpe->cpeGetInitialEvents();
+        $events = array_column($cpe->cpeGetActionsTodo(),'event');
 
         foreach ($events as $key=>$value)
         {
             $this->assertTrue(in_array($value,$initialEvents));
+        }
+
+        $stage = array_column($cpe->cpeGetActionsTodo(), 'stage');
+        foreach ($stage as $key=>$value)
+        {
+            $this->assertEquals($value,SoapAction::STAGE_INITIAL);
         }
 
         return $initialEvents;
@@ -115,25 +121,42 @@ class CPETest extends TestCase
 
     /**
      * @depends testCpeCreate
-     * @depends testCpeGetInitialEvents
+     * @depends testCepInitialTodoActions
      * @param CPE $cpe
      * @param array $initialEvents
      */
-    public function testCpeGetActions($cpe, $initialEvents)
+    public function testCpeGetReadyActions($cpe, $initialEvents)
     {
-        $actions = $cpe->cpeGetActions();
+        $actions = $cpe->cpeGetReadyActions();
 
         foreach ($actions as $action)
         {
             $this->assertTrue(in_array($action->event,$initialEvents));
         }
+    }
 
+    /**
+     * @depends testCpeCreate
+     * @depends testCepInitialTodoActions
+     * @depends testCpeGetReadyActions
+     * @param CPE $cpe
+     */
+    public function testCpeDoAction($cpe)
+    {
+        $action = new SoapAction();
+        $action->event = SoapAction::EVENT_BOOT;
+        $action->stage = SoapAction::STAGE_INITIAL;
+        $expected_soap = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
+        $this->assertTrue(SoapFacade::ValidSoap($expected_soap));
+
+        $soap = $cpe->cpeDoActionEvent($action);
+
+        $this->assertEquals($expected_soap,$soap);
         $this->artisan('migrate:refresh');
     }
 
     public function tearDown()
     {
-        //m::close();
         parent::tearDown();
     }
 }

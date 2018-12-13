@@ -17,19 +17,21 @@ use SimpleXMLIterator;
 
 class SoapEngine
 {
+    private static $templateInformResponse;
+
     private $templateParameterStruct;
     private $templateSetParameterRequest;
-    private $templateInformResponse;
     private $templateGetParameterRequest;
 
 
     const STATUS_OK="0";
+    const INFROM_BOOTSTRAP="0";
 
     public function __construct()
     {
         $this->templateParameterStruct = File::get(base_path('app/Models/xml/ParameterStruct.xml'));
         $this->templateSetParameterRequest = File::get(base_path('app/Models/xml/SetParamerterRequest.xml'));
-        $this->templateInformResponse = File::get(base_path('app/Models/xml/InformResponse.xml'));
+        self::$templateInformResponse = File::get(base_path('app/Models/xml/InformResponse.xml'));
         $this->templateGetParameterRequest = File::get(base_path('app/Models/xml/GetParameterRequest.xml'));
     }
     protected static function _display_error($error)
@@ -114,10 +116,9 @@ class SoapEngine
 
         return $data;
     }
-//----------------------------------------------------------------------------
-    public function soapBuildInformResponse($ID)
+    public static function soapBuildInformResponse($ID)
     {
-        $informResponse = $this->templateInformResponse;
+        $informResponse = self::$templateInformResponse;
         $informResponse = str_replace('{@ID}',$ID,$informResponse);
 
         return $informResponse;

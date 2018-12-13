@@ -65,7 +65,7 @@ class ACSController extends Controller
             $blankAuthentication = 'Basic ' . base64_encode(':');
             $isBlankUser = $credential['authentication'] === $blankAuthentication;
             if ($isBlankUser
-                && SoapFacade::GetSoapType($request->getContent()) == SoapAction::EVENT_INFORM_BOOTSTRAP)
+                && SoapFacade::GetSoapType($request->getContent()) == SoapEngine::INFROM_BOOTSTRAP)
             {
                 Log::info('Login with blank user and response with 200 OK');
                 response('',200);
