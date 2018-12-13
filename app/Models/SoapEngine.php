@@ -24,9 +24,6 @@ class SoapEngine
 
 
     const STATUS_OK="0";
-    const INFORM_BOOT=1;
-    const INFROM_BOOTSTRAP=2;
-
 
     public function __construct()
     {

@@ -2,9 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\CPE;
 use App\Models\Facades\SoapFacade;
-use App\Models\SoapEngine;
+use App\Models\SoapAction;
 use Tests\TestCase;
 use \Mockery as m;
 
@@ -19,8 +18,9 @@ class AcsControllerTest extends TestCase
     {
         parent::setUp();
         SoapFacade::shouldReceive('ValidSoap')->andReturn(true);
-        SoapFacade::shouldReceive('GetSoapType')->andReturn(SoapEngine::INFROM_BOOTSTRAP);
+        SoapFacade::shouldReceive('GetSoapType')->andReturn(SoapAction::EVENT_INFORM_BOOTSTRAP);
         SoapFacade::getFacadeRoot()->makePartial();
+
         //SoapFacade::shouldReceive('ParseInformRequest')->andReturnSelf();
     }
 
@@ -34,6 +34,8 @@ class AcsControllerTest extends TestCase
 
     public function testRequestEmptyUser()
     {
+        $this->artisan('migrate:refresh');
+
         $inform_request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
         $response = $this->call('POST','http://xacs/tr069',[],[],[],
             ['HTTP_AUTHORIZATION'=>'Basic ' . base64_encode(':'),

@@ -6,6 +6,7 @@ use App\Interfaces\ICpeContract;
 use App\Models\Facades\SoapFacade;
 use App\Models\SoapEngine;
 use App\Models\CPE;
+use APP\Models\SoapAction;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
@@ -64,7 +65,7 @@ class ACSController extends Controller
             $blankAuthentication = 'Basic ' . base64_encode(':');
             $isBlankUser = $credential['authentication'] === $blankAuthentication;
             if ($isBlankUser
-                && SoapFacade::GetSoapType($request->getContent()) == SoapEngine::INFROM_BOOTSTRAP)
+                && SoapFacade::GetSoapType($request->getContent()) == SoapAction::EVENT_INFORM_BOOTSTRAP)
             {
                 Log::info('Login with blank user and response with 200 OK');
                 response('',200);
@@ -78,7 +79,7 @@ class ACSController extends Controller
             $this->cpe = CPE::where('ConnectionRequestUser','=', $credential['name'])->first();
             if (empty($this->cpe))
             {
-                Log::info('Can not find CPE with credential in Request');
+                Log::info('Can not find CPE with invalidate credential in Request');
                 abort(401);
                 return;
             }
@@ -88,6 +89,7 @@ class ACSController extends Controller
                 Log::info('Request with valid credential and response with 200 OK');
                 response('',200);
                 Log::info('Find CPE and get action list for next steps');
+                $this->cpe->cpeHandleSoap($request->getContent());
                 return;
             }
             else if ($status == CPE::STATUS_FAILED)
@@ -100,7 +102,4 @@ class ACSController extends Controller
         }
         abort(403);
     }
-
-
-
 }

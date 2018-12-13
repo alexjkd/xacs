@@ -3,7 +3,8 @@
 namespace App\Models;
 
 use App\Interfaces\ICpeContract;
-use App\Interfaces\IInformContract;
+use App\Models\SoapAction;
+
 use Illuminate\Database\Eloquent\Model;
 
 
@@ -34,19 +35,27 @@ class CPE extends Model implements ICpeContract
 
     protected $table = 'cpes';
     protected $isLogin = false;
-    protected $actionQueue;
+    protected $initialEvents;
     protected $cpe_info;
 
     public function __construct($attributes = array())
     {
         parent::__construct($attributes);
+        $this->_setInitialEvents();
     }
 
+    private function _setInitialEvents()
+    {
+        $this->initialEvents = array(
+          '0'=>SoapAction::EVENT_HTTP_AUTH,
+          '1'=>SoapAction::EVENT_INFORM_BOOTSTRAP,
+        );
+    }
     /**
      * @param array $credential
      * @return bool
      */
-    private function _SavedUserAuth($credential)
+    private function _savedUserAuth($credential)
     {
         //TODO: need to travel all the CPE table to check the connection user
 
@@ -56,6 +65,15 @@ class CPE extends Model implements ICpeContract
         $this->isLogin = $validated;
 
         return $validated;
+    }
+
+    private function _actionInsert($event, $stage)
+    {
+        $action = new SoapAction();
+        $action->event = $event;
+        $action->stage = $stage;
+
+        $this->action()->save($action);
     }
 
     public function cpeCreate($cpe_info)
@@ -72,9 +90,15 @@ class CPE extends Model implements ICpeContract
 
         //TODO: Should generate a ReqestUsername and RequestPassword for the device accordingly
         $this->setAttribute('ConnectionRequestUser',$cpe_info['DeviceId']['ProductClass']);
-        $this->setAttribute('ConnectionRequestPassword',password_hash($cpe_info['DeviceId']['SerialNumber'],PASSWORD_DEFAULT));
-
+        $this->setAttribute('ConnectionRequestPassword',
+                             password_hash($cpe_info['DeviceId']['SerialNumber'],
+                             PASSWORD_DEFAULT));
         $this->save();
+
+        $this->_actionInsert(SoapAction::EVENT_HTTP_AUTH,SoapAction::STAGE_INITIAL);
+        $this->_actionInsert(SoapAction::EVENT_INFORM_BOOTSTRAP,SoapAction::STAGE_INITIAL);
+
+
         return $this;
     }
 
@@ -82,36 +106,33 @@ class CPE extends Model implements ICpeContract
     {
         $status_code = CPE::STATUS_FAILED;
 
-        if ($this->_SavedUserAuth($credential))
+        if ($this->_savedUserAuth($credential))
         {
             $status_code = CPE::STATUS_SUCCEEDED;
         }
         return $status_code;
     }
-/*
-    public function cpeInitActionQueue()
-    {
 
+    public function action()
+    {
+        return $this->hasMany(SoapAction::class,'fk_cpe_id','id');
     }
 
-    public function cpeActionEnqueue()
+    public function cpeGetActions()
     {
+        $actionList = $this->action()->select('event','stage','status')
+            ->where('status',SoapAction::STATUS_READY)->get();
 
+        return $actionList;
     }
 
-    public function cpeActionDequeue()
+    public function cpeGetInitialEvents()
     {
-
+        return $this->initialEvents;
     }
-*/
 
-    public function cpeBuildActions()
+    public function cpeHandleSoap($soap)
     {
-
-    }
-    public function cpeActionNextStep()
-    {
-
     }
 
 

@@ -9,8 +9,9 @@
 namespace Tests\Unit;
 
 use App\Models\CPE;
+use App\Models\SoapAction;
 use Tests\TestCase;
-use \Mockery as m;
+//use \Mockery as m;
 
 
 class CPETest extends TestCase
@@ -43,10 +44,12 @@ class CPETest extends TestCase
         $this->assertEquals(CPE::STATUS_FAILED, $this->cpe->cpeLogin($user_invalid));
     }
 
-
-
+    /**
+     * @return CPE
+     */
     public function testCpeCreate()
     {
+        $this->artisan('migrate:refresh');
         $cpe_info = array(
             'ID'=>1641837687,
             'DeviceId'=> array(
@@ -84,12 +87,53 @@ class CPETest extends TestCase
             'ProductClass'=>'V7610',
             'SerialNumber'=>'08028eef0b00'
         ]);
+        return $cpe;
+    }
+
+    /**
+     * @depends testCpeCreate
+     * @param CPE $cpe
+     * @return array
+     */
+    public function testCpeGetInitialEvents($cpe)
+    {
+
+         $events = array(
+            '0'=>SoapAction::EVENT_HTTP_AUTH,
+            '1'=>SoapAction::EVENT_INFORM_BOOTSTRAP,
+        );
+
+        $initialEvents = $cpe->cpeGetInitialEvents();
+
+        foreach ($events as $key=>$value)
+        {
+            $this->assertTrue(in_array($value,$initialEvents));
+        }
+
+        return $initialEvents;
+    }
+
+    /**
+     * @depends testCpeCreate
+     * @depends testCpeGetInitialEvents
+     * @param CPE $cpe
+     * @param array $initialEvents
+     */
+    public function testCpeGetActions($cpe, $initialEvents)
+    {
+        $actions = $cpe->cpeGetActions();
+
+        foreach ($actions as $action)
+        {
+            $this->assertTrue(in_array($action->event,$initialEvents));
+        }
+
+        $this->artisan('migrate:refresh');
     }
 
     public function tearDown()
     {
-        $this->artisan('migrate:refresh');
-        m::close();
+        //m::close();
         parent::tearDown();
     }
 }
