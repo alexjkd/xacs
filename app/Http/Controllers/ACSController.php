@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Interfaces\ICpeContract;
-use App\Models\Facades\SoapFacade;
-use App\Models\SoapEngine;
+use App\Models\ACS;
+
 use App\Models\CPE;
-use APP\Models\SoapAction;
+
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
@@ -51,6 +51,15 @@ class ACSController extends Controller
 
     public function AcsDispatcher(Request $request)
     {
+        $acs = app()->make('APP\Models\ACS');
+        $cpe = $acs->acsFindCpe();
+        $status = $cpe->cpeStartActionChain($request);
+        if ($status != CPE::STATUS_SUCCEEDED)
+        {
+            Log::warning("The cpe action failed, abort the request with code $status");
+            abort($status);
+        }
+/*
         if($request->getContent() && !$this->_withAuthentication($request))
         {
             return response('Unauthenticated',401);
@@ -100,6 +109,6 @@ class ACSController extends Controller
             }
 
         }
-        abort(403);
+        abort(403);*/
     }
 }

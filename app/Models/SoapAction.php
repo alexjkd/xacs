@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\CPE;
 
 class SoapAction extends Model
 {
@@ -14,7 +13,13 @@ class SoapAction extends Model
     const STAGE_USER=1;
     const STATUS_FINISHED = 1;
     const STATUS_READY= 0;
-
+    protected $table = 'soap_actions';
+    /*
+     * fillable is the limited for create(),only attributes list can be fillable
+     */
+    protected $fillable=[
+        'stage', 'event', 'status', 'data', 'soap'
+    ];
 
     public function cpe()
     {

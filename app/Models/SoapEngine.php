@@ -68,6 +68,11 @@ class SoapEngine
 
     public static function ValidSoap(string $soap_xml)
     {
+        if(empty($soap_xml))
+        {
+            return true;
+        }
+
         $xml = new \DOMDocument();
         $xml->loadXML($soap_xml);
         if (!$xml->schemaValidate(base_path('app/Models/xml/cwmp-1-2.xsd')))

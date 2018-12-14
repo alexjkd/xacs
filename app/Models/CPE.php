@@ -3,10 +3,11 @@
 namespace App\Models;
 
 use App\Interfaces\ICpeContract;
-use App\Models\SoapAction;
-
+use App\Models\Facades\SoapFacade;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 
+use stdClass;
 
 class CPE extends Model implements ICpeContract
 {
@@ -38,26 +39,34 @@ class CPE extends Model implements ICpeContract
     protected $actionsTodo;
     protected $cpe_info;
 
-    public function __construct($attributes = array())
-    {
-        parent::__construct($attributes);
-        $this->_setInitialEvents();
-    }
-
     private function _setInitialEvents()
     {
-        $this->actionsTodo = array(
-          [
-              'event'=>SoapAction::EVENT_HTTP_AUTH,
-              'stage'=>SoapAction::STAGE_INITIAL,
-              'data'=>''
-          ],
-          [
-              'event'=>SoapAction::EVENT_BOOTSTRAP,
-              'stage'=>SoapAction::STAGE_INITIAL,
-              'data'=>'',
-          ],
-        );
+        $acs = app()->make('App\Models\ACS');
+        $count1 = ACS::$count;
+        print_r("CPE: _setInitialEvents() acs count = $count1\n");
+        $acs = app()->make('App\Models\ACS');
+        $count1 = ACS::$count;
+        print_r("CPE: _setInitialEvents() acs count = $count1\n");
+        $this->actionsTodo = array([
+            'event'=> SoapAction::EVENT_HTTP_AUTH,
+            'stage'=> SoapAction::STAGE_INITIAL,
+             'data'=>''
+        ],
+        [
+             'event'=>SoapAction::EVENT_BOOTSTRAP,
+             'stage'=>SoapAction::STAGE_INITIAL,
+             'data'=>'',
+        ]);
+
+        if(!$acs->acsGetCPEAuthable())
+        {
+            $this->actionsTodo = array(
+            [
+                'event'=>SoapAction::EVENT_BOOTSTRAP,
+                'stage'=>SoapAction::STAGE_INITIAL,
+                'data'=>'',
+            ]);
+        }
     }
     /**
      * @param array $credential
@@ -75,11 +84,12 @@ class CPE extends Model implements ICpeContract
         return $validated;
     }
 
-    private function _actionInsert($event, $stage)
+    private function _actionInsert($event, $stage, $data)
     {
         $action = new SoapAction();
-        $action->event = $event;
-        $action->stage = $stage;
+        $action->setAttribute('event',$event);
+        $action->setAttribute('stage',$stage);
+        $action->setAttribute('data',$data);
 
         $this->action()->save($action);
     }
@@ -93,7 +103,26 @@ class CPE extends Model implements ICpeContract
                                  $action['stage'],
                                  $action['data']);
         }
+    }
+//-------------------------------------------------------------------------
+    public static function make(stdClass $object)
+    {
+        return new self($object);
+    }
 
+    public static function makeCollection(array $collection)
+    {
+        foreach($collection AS $key => $Item)
+        {
+            $collection[$key] = self::make($Item);
+        }
+        return $collection;
+    }
+//-------------------------------------------------------------------------
+    public function __construct($attributes = array())
+    {
+        parent::__construct($attributes);
+        $this->_setInitialEvents();
     }
 
     public function cpeCreate($cpe_info)
@@ -135,12 +164,18 @@ class CPE extends Model implements ICpeContract
         return $this->hasMany(SoapAction::class,'fk_cpe_id','id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
     public function cpeGetReadyActions()
     {
-        $actionList = $this->action()->select('event','stage','status')
+        /*
+         * need primary key and foreign key for updating
+         * */
+        $actions = $this->action()->select('id','fk_cpe_id','event','stage','status')
             ->where('status',SoapAction::STATUS_READY)->get();
 
-        return $actionList;
+        return $actions;
     }
 
     public function cpeGetActionsTodo()
@@ -148,12 +183,27 @@ class CPE extends Model implements ICpeContract
         return $this->actionsTodo;
     }
 
-    /**
-     * @param \App\Models\SoapAction $action
-     * @return array
-     */
-    public function cpeDoActionEvent(SoapAction $action)
+    public function cpeDoAction(SoapAction $action)
     {
+        $soap ='';
+        switch ($action->getAttribute('event'))
+        {
+            case SoapAction::EVENT_BOOTSTRAP:
+            case SoapAction::EVENT_BOOT:
+                $soap = SoapFacade::soapBuildInformResponse(
+                    $action->getAttribute('data'));
+                $action->update([
+                    'soap'=>$soap,
+                    'status'=> SoapAction::STATUS_FINISHED,
+                ]);
+                break;
+            case SoapAction::EVENT_HTTP_AUTH:
+                $http_authentication = $action->getAttribute('data');
+                break;
+            default:
+
+        }
+
         return $soap;
     }
 

@@ -19,6 +19,7 @@ class CreateSoapActionsTable extends Migration
             $table->integer('event')->default(0);
             $table->integer('status')->default(0);
             $table->string('data')->nullable();
+            $table->string('soap',1024*10)->nullable();
 
             $table->integer('fk_cpe_id')->unsigned();
             $table->foreign('fk_cpe_id')
