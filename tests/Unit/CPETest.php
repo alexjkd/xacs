@@ -8,9 +8,13 @@
 
 namespace Tests\Unit;
 
+use App\Models\SoapActionStatus;
+use App\Models\SoapActionType;
 use App\Models\CPE;
 use App\Models\Facades\SoapFacade;
 use App\Models\SoapAction;
+
+use Illuminate\Notifications\Action;
 use Tests\TestCase;
 
 class CPETest extends TestCase
@@ -21,7 +25,7 @@ class CPETest extends TestCase
     {
         parent::setUp();
     }
-
+/*
     public function testCpeLogin()
     {
         $this->cpe = factory('App\Models\CPE')->create([
@@ -42,7 +46,7 @@ class CPETest extends TestCase
         $this->assertEquals(CPE::STATUS_SUCCEEDED, $this->cpe->cpeLogin($user_test));
         $this->assertEquals(CPE::STATUS_FAILED, $this->cpe->cpeLogin($user_invalid));
     }
-
+*/
     /**
      * @return CPE
      */
@@ -78,6 +82,7 @@ class CPETest extends TestCase
         );
 
         $cpe = new CPE();
+        $cpe = new CPE();
 
         $cpe->cpeCreate($cpe_info);
         $this->assertDatabaseHas('cpes', [
@@ -97,8 +102,8 @@ class CPETest extends TestCase
     public function testCepInitialTodoActions($cpe)
     {
          $initialEvents = array(
-            '0'=>SoapAction::EVENT_HTTP_AUTH,
-            '1'=>SoapAction::EVENT_BOOTSTRAP,
+            '0'=>SoapActionType::EVENT_HTTP_AUTH,
+            '1'=>SoapActionType::EVENT_BOOTSTRAP,
         );
 
         $events = array_column($cpe->cpeGetActionsTodo(),'event');
@@ -111,7 +116,7 @@ class CPETest extends TestCase
         $stage = array_column($cpe->cpeGetActionsTodo(), 'stage');
         foreach ($stage as $key=>$value)
         {
-            $this->assertEquals($value,SoapAction::STAGE_INITIAL);
+            $this->assertEquals($value,SoapActionStatus::STAGE_INITIAL);
         }
 
         return $initialEvents;
@@ -131,6 +136,16 @@ class CPETest extends TestCase
         {
             $this->assertTrue(in_array($action->getAttribute('event'), $initialEvents));
         }
+        //insert a action
+        $action = new SoapAction();
+        $action->setAttribute('event',SoapActionType::EVENT_SETPARAMETER);
+        $cpe->action()->save($action);
+
+        $action = $cpe->cpeGetReadyActions()->first();
+        $this->assertEquals($action->getAttribute('event'),SoapActionType::EVENT_SETPARAMETER);
+        //delete a action
+        //$cpe->action()->where('event',SoapAction::EVENT_SETPARAMETER)->delete();
+
         return $actions;
     }
 
@@ -143,15 +158,16 @@ class CPETest extends TestCase
     public function testCpeDoAction($cpe,$actions)
     {
         $expected_bootstrap = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
+        $test_request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
 
         $initial_actions = array(
-            SoapAction::EVENT_BOOTSTRAP => array(
-                'test_data'=>1641837687,
-                'expected_soap'=>$expected_bootstrap,
+            SoapActionType::EVENT_BOOTSTRAP => array(
+                'test_request'=>$test_request,
+                'expected'=>$expected_bootstrap,
             ),
-            SoapAction::EVENT_BOOT => array(
-                'test_data'=>1641837687,
-                'expected_soap'=>$expected_bootstrap,
+            SoapActionType::EVENT_BOOT => array(
+                'test_request'=>$test_request,
+                'expected'=>$expected_bootstrap,
             ),
         );
 
@@ -161,13 +177,16 @@ class CPETest extends TestCase
             {
                 if ($action->getAttribute('event') === $key)
                 {
-                    $action->setAttribute('data', $value['test_data']);
-                    $soap = $cpe->cpeDoAction($action);
-                    $this->assertTrue(SoapFacade::ValidSoap($value['expected_soap']));
-                    $this->assertEquals($value['expected_soap'],$soap);
+                    $action->setAttribute('request', $value['test_request']);
+                    $action->setAttribute('data',
+                        json_encode(SoapFacade::ParseInformRequest($value['test_request'])));
+                    $result = $cpe->cpeDoAction($action);
+                    $this->assertTrue(SoapFacade::ValidSoap($value['expected']));
+                    $this->assertEquals($value['expected'],$result['content']);
                     $this->assertDatabaseHas('soap_actions',[
                         'fk_cpe_id'=>$cpe->getAttribute('id'),
-                        'soap'=>$soap,
+                        'request' =>$value['test_request'],
+                        'response'=>$result['content'],
                     ]);
                 }
             }

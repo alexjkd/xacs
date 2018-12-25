@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use \App\Models\SoapActionStatus;
 
 class CreateSoapActionsTable extends Migration
 {
@@ -15,11 +16,12 @@ class CreateSoapActionsTable extends Migration
     {
         Schema::create('soap_actions', function (Blueprint $table) {
             $table->increments('id');
-            $table->integer('stage')->default(0);
-            $table->integer('event')->default(0);
-            $table->integer('status')->default(0);
-            $table->string('data')->nullable();
-            $table->string('soap',1024*10)->nullable();
+            $table->integer('stage')->default(SoapActionStatus::STAGE_INITIAL);
+            $table->integer('event')->nullable();
+            $table->integer('status')->default(SoapActionStatus::STATUS_READY);
+            $table->text('data')->nullable();
+            $table->text('request')->nullable();
+            $table->text('response')->nullable();
 
             $table->integer('fk_cpe_id')->unsigned();
             $table->foreign('fk_cpe_id')

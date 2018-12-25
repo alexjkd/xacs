@@ -4,9 +4,15 @@ namespace App\Models;
 
 use App\Interfaces\ICpeContract;
 use App\Models\Facades\SoapFacade;
+use App\Models\SoapActionType;
+use App\Models\SoapActionStatus;
+
+
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-
+use Illuminate\Notifications\Action;
+use Illuminate\Support\Facades\Log;
 use stdClass;
 
 class CPE extends Model implements ICpeContract
@@ -48,13 +54,13 @@ class CPE extends Model implements ICpeContract
         $count1 = ACS::$count;
         print_r("CPE: _setInitialEvents() acs count = $count1\n");
         $this->actionsTodo = array([
-            'event'=> SoapAction::EVENT_HTTP_AUTH,
-            'stage'=> SoapAction::STAGE_INITIAL,
-             'data'=>''
+            'event'=> SoapActionType::EVENT_HTTP_AUTH,
+            'stage'=> SoapActionStatus::STAGE_INITIAL,
+            'data'=>''
         ],
         [
-             'event'=>SoapAction::EVENT_BOOTSTRAP,
-             'stage'=>SoapAction::STAGE_INITIAL,
+             'event'=>SoapActionType::EVENT_BOOTSTRAP,
+             'stage'=>SoapActionStatus::STAGE_INITIAL,
              'data'=>'',
         ]);
 
@@ -62,8 +68,8 @@ class CPE extends Model implements ICpeContract
         {
             $this->actionsTodo = array(
             [
-                'event'=>SoapAction::EVENT_BOOTSTRAP,
-                'stage'=>SoapAction::STAGE_INITIAL,
+                'event'=>SoapActionType::EVENT_BOOTSTRAP,
+                'stage'=>SoapActionStatus::STAGE_INITIAL,
                 'data'=>'',
             ]);
         }
@@ -122,6 +128,7 @@ class CPE extends Model implements ICpeContract
     public function __construct($attributes = array())
     {
         parent::__construct($attributes);
+        print_r("CPE::__constructor__\n");
         $this->_setInitialEvents();
     }
 
@@ -147,7 +154,7 @@ class CPE extends Model implements ICpeContract
 
         return $this;
     }
-
+/*
     public function cpeLogin($credential)
     {
         $status_code = CPE::STATUS_FAILED;
@@ -158,7 +165,7 @@ class CPE extends Model implements ICpeContract
         }
         return $status_code;
     }
-
+*/
     public function action()
     {
         return $this->hasMany(SoapAction::class,'fk_cpe_id','id');
@@ -173,7 +180,9 @@ class CPE extends Model implements ICpeContract
          * need primary key and foreign key for updating
          * */
         $actions = $this->action()->select('id','fk_cpe_id','event','stage','status')
-            ->where('status',SoapAction::STATUS_READY)->get();
+            ->where('status',SoapActionStatus::STATUS_READY)
+            ->orderBy('id','desc')
+            ->get();
 
         return $actions;
     }
@@ -185,26 +194,65 @@ class CPE extends Model implements ICpeContract
 
     public function cpeDoAction(SoapAction $action)
     {
-        $soap ='';
+        $result = array(
+            'code'=>403,
+            'content'=>'',
+        );
         switch ($action->getAttribute('event'))
         {
-            case SoapAction::EVENT_BOOTSTRAP:
-            case SoapAction::EVENT_BOOT:
-                $soap = SoapFacade::soapBuildInformResponse(
-                    $action->getAttribute('data'));
+            case SoapActionType::EVENT_BOOTSTRAP:
+            case SoapActionType::EVENT_BOOT:
+                if(empty($action->getAttribute('request')))
+                {
+                    Log::warning('the request is empty which will cause an abnormal record in session log');
+                }
+                $data = json_decode($action->getAttribute('data'),true);
+                $result['content'] = SoapFacade::soapBuildInformResponse($data['ID']);
+                $result['code']=200;
                 $action->update([
-                    'soap'=>$soap,
-                    'status'=> SoapAction::STATUS_FINISHED,
+                    'response'=>$result['content'],
+                    'status'=> SoapActionStatus::STATUS_FINISHED,
                 ]);
                 break;
-            case SoapAction::EVENT_HTTP_AUTH:
+            case SoapActionType::EVENT_HTTP_AUTH:
                 $http_authentication = $action->getAttribute('data');
+                $blankAuthentication = 'Basic ' . base64_encode(':');
+                if ( empty($http_authentication) )
+                {
+                    break;
+                }
+
+                if ( $http_authentication === $blankAuthentication )
+                {
+                    $result['code'] = 200;
+                    $result['content'] ='';
+                    Log::info("CPE() auth with user blank");
+                    response('',200);
+                    $new_action = new SoapAction();
+                    //get new user and password
+                    $data = array (
+                        'Device.ManagementServer.Username'=>'08028E-08028EEF0B00',
+                        'Device.ManagementServer.Password'=>'xwhSLiQAwOXlLeVX',
+                        'Device.ManagementServer.URL'=>'http://58.162.32.33/cwmp/cwmp'
+                    );
+                    $new_action->setAttribute('event',SoapAction::EVENT_SETPARAMETER);
+                    $new_action->setAttribute('request',$data);
+                    $this->action()->save($new_action);
+                    $this->cpeDoAction($new_action);
+                }
+                else
+                {
+
+                }
+
+                break;
+            case SoapActionType::EVENT_SETPARAMETER:
+
                 break;
             default:
-
         }
 
-        return $soap;
+        return $result;
     }
 
     public function cpeHandleSoap($soap)

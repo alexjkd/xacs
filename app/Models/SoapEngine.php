@@ -19,8 +19,8 @@ class SoapEngine
 {
     private static $templateInformResponse;
 
-    private $templateParameterStruct;
-    private $templateSetParameterRequest;
+    private static $templateParameterStruct;
+    private static $templateSetParameterRequest;
     private $templateGetParameterRequest;
 
 
@@ -29,8 +29,8 @@ class SoapEngine
 
     public function __construct()
     {
-        $this->templateParameterStruct = File::get(base_path('app/Models/xml/ParameterStruct.xml'));
-        $this->templateSetParameterRequest = File::get(base_path('app/Models/xml/SetParamerterRequest.xml'));
+        self::$templateParameterStruct = File::get(base_path('app/Models/xml/ParameterStruct.xml'));
+        self::$templateSetParameterRequest = File::get(base_path('app/Models/xml/SetParamerterRequest.xml'));
         self::$templateInformResponse = File::get(base_path('app/Models/xml/InformResponse.xml'));
         $this->templateGetParameterRequest = File::get(base_path('app/Models/xml/GetParameterRequest.xml'));
     }
@@ -128,6 +128,44 @@ class SoapEngine
 
         return $informResponse;
     }
+
+    public static function soapBuildSetParameterRequest($data, IDataModelContract $dataModel)
+    {
+        $struct = '';
+        foreach ($data as $key=>$value)
+        {
+            $type = $dataModel->dataGetType($key);
+            $entry = self::$templateParameterStruct;
+            $entry = str_replace('{@KEY}',$key,$entry);
+            $entry = str_replace('{@TYPE}',$type,$entry);
+            $entry = str_replace('{@VALUE}',$value,$entry);
+            $struct = sprintf("%s%s",$entry,$struct);
+        }
+        $setParameterRequest = self::$templateSetParameterRequest;
+        $setParameterRequest = str_replace('{@PARAMETER_NUM}',count($data),$setParameterRequest);
+        $setParameterRequest = str_replace('{@PARAMETER_VALUE_STRUCT}',$struct,$setParameterRequest);
+
+        return $setParameterRequest;
+    }
+
+    public static function soapParseSetParameterResponse($soap)
+    {
+        $xml = simplexml_load_string($soap);
+        $ns = $xml->getNamespaces(true);
+        $ns_name = array_keys($ns);
+
+        $status = $xml->children($ns_name[0],true)->Body->children($ns_name[1],true)
+            ->SetParameterValuesResponse
+            ->children()->Status;
+
+        return $status[0];
+    }
+
+    public static function soapGetActionType($soap)
+    {
+
+    }
+
 //----------------------------------------------------------------------------
     public function soapBuildGetParameterRequest($data)
     {
@@ -164,37 +202,6 @@ class SoapEngine
 
     }
 //-----------------------------------------------------------------------------
-    public function soapBuildSetParameterRequest($data, IDataModelContract $dataModel)
-    {
-        $struct = '';
-        foreach ($data as $key=>$value)
-        {
-            $type = $dataModel->dataGetType($key);
-            $entry = $this->templateParameterStruct;
-            $entry = str_replace('{@KEY}',$key,$entry);
-            $entry = str_replace('{@TYPE}',$type,$entry);
-            $entry = str_replace('{@VALUE}',$value,$entry);
-            $struct = sprintf("%s%s",$entry,$struct);
-        }
-        $setParameterRequest = $this->templateSetParameterRequest;
-        $setParameterRequest = str_replace('{@PARAMETER_NUM}',count($data),$setParameterRequest);
-        $setParameterRequest = str_replace('{@PARAMETER_VALUE_STRUCT}',$struct,$setParameterRequest);
-
-        return $setParameterRequest;
-    }
-
-    public function soapParseSetParameterResponse($soap)
-    {
-        $xml = simplexml_load_string($soap);
-        $ns = $xml->getNamespaces(true);
-        $ns_name = array_keys($ns);
-
-        $status = $xml->children($ns_name[0],true)->Body->children($ns_name[1],true)
-                      ->SetParameterValuesResponse
-                      ->children()->Status;
-
-        return $status[0];
-    }
     /*
         private function xml_to_array( $xml )
         {

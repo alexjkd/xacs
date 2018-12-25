@@ -8,7 +8,7 @@
 
 namespace Tests\Unit;
 
-use App\Models\SoapAction;
+use App\Models\SoapActionStatus;
 use Tests\TestCase;
 
 class SoapActionTest extends TestCase
@@ -19,12 +19,12 @@ class SoapActionTest extends TestCase
         $this->artisan('migrate:refresh');
         $action = factory('App\Models\SoapAction')->create();
         $action->update([
-            'soap'=>$soap,
-            'status'=> SoapAction::STATUS_FINISHED,
+            'request'=>$soap,
+            'status'=> SoapActionStatus::STATUS_FINISHED,
         ]);
         $this->assertDatabaseHas('soap_actions',[
-            'soap'=>$soap,
-            'status'=> SoapAction::STATUS_FINISHED,
+            'request'=>$soap,
+            'status'=> SoapActionStatus::STATUS_FINISHED,
         ]);
     }
 }

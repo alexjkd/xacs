@@ -153,8 +153,7 @@ class SoapTest extends TestCase
             'Device.ManagementServer.URL'=>'http://58.162.32.33/cwmp/cwmp'
         );
 
-        $engine = new SoapEngine();
-        $soap = $engine->soapBuildSetParameterRequest($data, $this->datamodel);
+        $soap = SoapEngine::soapBuildSetParameterRequest($data, $this->datamodel);
         $this->assertTrue(SoapFacade::ValidSoap($soap));
         return $soap;
     }
@@ -167,8 +166,7 @@ class SoapTest extends TestCase
         $soap = file_get_contents(base_path('tests/soap/SET_PARAMETERS_RESPONSE.xml'));
         $this->assertTrue(SoapFacade::ValidSoap($soap));
 
-        $engine = new SoapEngine();
-        $status = $engine->soapParseSetParameterResponse($soap);
+        $status = SoapEngine::soapParseSetParameterResponse($soap);
         $this->assertEquals(SoapEngine::STATUS_OK,$status);
     }
 
