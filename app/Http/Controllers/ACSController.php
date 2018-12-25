@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Interfaces\ICpeContract;
-use App\Models\ACS;
-
 use App\Models\CPE;
 
 
@@ -52,11 +50,11 @@ class ACSController extends Controller
     public function AcsDispatcher(Request $request)
     {
         $acs = app()->make('APP\Models\ACS');
-        $cpe = $acs->acsFindCpe();
-        $status = $cpe->cpeStartActionChain($request);
+        $cpe = $acs->acsFindCpe($request);
+        $status = $cpe->cpeStartActionChain($request->getContent());
         if ($status != CPE::STATUS_SUCCEEDED)
         {
-            Log::warning("The cpe action failed, abort the request with code $status");
+            Log::warning("The cpe action executed failure, abort the request with code $status");
             abort($status);
         }
 /*

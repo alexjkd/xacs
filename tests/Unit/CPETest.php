@@ -8,9 +8,12 @@
 
 namespace Tests\Unit;
 
+use App\Models\Facades\AcsFacade;
+use App\Models\SoapActionStage;
 use App\Models\SoapActionStatus;
-use App\Models\SoapActionType;
+use App\Models\SoapActionEvent;
 use App\Models\CPE;
+use App\Models\ACS;
 use App\Models\Facades\SoapFacade;
 use App\Models\SoapAction;
 
@@ -46,6 +49,31 @@ class CPETest extends TestCase
         $this->assertEquals(CPE::STATUS_SUCCEEDED, $this->cpe->cpeLogin($user_test));
         $this->assertEquals(CPE::STATUS_FAILED, $this->cpe->cpeLogin($user_invalid));
     }
+
+    public function testCepInitialTodoActions($cpe)
+    {
+         $initialEvents = array(
+            '0'=>SoapActionEvent::EVENT_HTTP_AUTH,
+            '1'=>SoapActionEvent::BOOTSTRAP,
+            '2'=>SoapActionEvent::BOOT,
+        );
+
+        $events = array_column($cpe->cpeGetActionsTodo(),'event');
+
+        foreach ($events as $key=>$value)
+        {
+            $this->assertTrue(in_array($value,$initialEvents));
+        }
+
+        $stage = array_column($cpe->cpeGetActionsTodo(), 'stage');
+        foreach ($stage as $key=>$value)
+        {
+            $this->assertEquals($value,SoapActionStage::STAGE_INITIAL);
+        }
+
+        return $initialEvents;
+    }
+
 */
     /**
      * @return CPE
@@ -81,8 +109,7 @@ class CPETest extends TestCase
             ),
         );
 
-        $cpe = new CPE();
-        $cpe = new CPE();
+        $cpe = $this->app->build(CPE::class);
 
         $cpe->cpeCreate($cpe_info);
         $this->assertDatabaseHas('cpes', [
@@ -97,40 +124,16 @@ class CPETest extends TestCase
     /**
      * @depends testCpeCreate
      * @param CPE $cpe
-     * @return array
-     */
-    public function testCepInitialTodoActions($cpe)
-    {
-         $initialEvents = array(
-            '0'=>SoapActionType::EVENT_HTTP_AUTH,
-            '1'=>SoapActionType::EVENT_BOOTSTRAP,
-        );
-
-        $events = array_column($cpe->cpeGetActionsTodo(),'event');
-
-        foreach ($events as $key=>$value)
-        {
-            $this->assertTrue(in_array($value,$initialEvents));
-        }
-
-        $stage = array_column($cpe->cpeGetActionsTodo(), 'stage');
-        foreach ($stage as $key=>$value)
-        {
-            $this->assertEquals($value,SoapActionStatus::STAGE_INITIAL);
-        }
-
-        return $initialEvents;
-    }
-
-    /**
-     * @depends testCpeCreate
-     * @depends testCepInitialTodoActions
-     * @param CPE $cpe
-     * @param array $initialEvents
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function testCpeGetReadyActions($cpe, $initialEvents)
+    public function testCpeGetReadyActions($cpe)
     {
+        $initialEvents = array(
+            SoapActionEvent::HTTP_AUTH,
+            SoapActionEvent::BOOTSTRAP,
+            SoapActionEvent::BOOT,
+        );
+
         $actions = $cpe->cpeGetReadyActions();
         foreach ($actions as $action)
         {
@@ -138,13 +141,19 @@ class CPETest extends TestCase
         }
         //insert a action
         $action = new SoapAction();
-        $action->setAttribute('event',SoapActionType::EVENT_SETPARAMETER);
+        $action->setAttribute('event',SoapActionEvent::SET_PARAMETER);
         $cpe->action()->save($action);
 
         $action = $cpe->cpeGetReadyActions()->first();
-        $this->assertEquals($action->getAttribute('event'),SoapActionType::EVENT_SETPARAMETER);
+        $this->assertEquals($action->getAttribute('event'),SoapActionEvent::SET_PARAMETER);
         //delete a action
-        //$cpe->action()->where('event',SoapAction::EVENT_SETPARAMETER)->delete();
+        $cpe->action()->where('event',SoapActionEvent::SET_PARAMETER)->delete();
+
+        $actions = $cpe->cpeGetReadyActions();
+        foreach ($actions as $action)
+        {
+            $this->assertTrue(in_array($action->getAttribute('event'), $initialEvents));
+        }
 
         return $actions;
     }
@@ -153,23 +162,31 @@ class CPETest extends TestCase
      * @depends testCpeCreate
      * @depends testCpeGetReadyActions
      * @param CPE $cpe
-     * @param \Illuminate\Database\Eloquent\Collection $actions
      */
-    public function testCpeDoAction($cpe,$actions)
+    public function testCpeDoAction($cpe)
     {
         $expected_bootstrap = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
         $test_request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
 
         $initial_actions = array(
-            SoapActionType::EVENT_BOOTSTRAP => array(
+            SoapActionEvent::BOOTSTRAP => array(
                 'test_request'=>$test_request,
                 'expected'=>$expected_bootstrap,
             ),
-            SoapActionType::EVENT_BOOT => array(
+            SoapActionEvent::BOOT => array(
                 'test_request'=>$test_request,
                 'expected'=>$expected_bootstrap,
             ),
         );
+        $action = new SoapAction();
+        $action->setAttribute('event',SoapActionEvent::BOOTSTRAP);
+        $cpe->cpeInsertActions($action);
+
+        $action = new SoapAction();
+        $action->setAttribute('event',SoapActionEvent::BOOT);
+        $cpe->cpeInsertActions($action);
+
+        $actions = $cpe->cpeGetReadyActions();
 
         foreach ($actions as $action)
         {
@@ -194,6 +211,26 @@ class CPETest extends TestCase
 
         $this->artisan('migrate:refresh');
     }
+
+    /**
+     * @depends testCpeCreate
+     * @depends testCpeGetReadyActions
+     * @param CPE $cpe
+     * @param \Illuminate\Database\Eloquent\Collection $actions
+     */
+    public function testCpeStartActionChain()
+    {
+        AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
+        AcsFacade::getFacadeRoot()->makePartial();
+        $request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+
+        $cpe = $this->testCpeCreate();
+
+        $result = $cpe->cpeStartActionChain($request);
+
+        $this->assertEquals(200,$result['code']);
+    }
+
 
     public function tearDown()
     {

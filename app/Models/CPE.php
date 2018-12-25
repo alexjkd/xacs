@@ -3,15 +3,13 @@
 namespace App\Models;
 
 use App\Interfaces\ICpeContract;
+use App\Models\Facades\AcsFacade;
 use App\Models\Facades\SoapFacade;
-use App\Models\SoapActionType;
+use App\Models\SoapActionEvent;
 use App\Models\SoapActionStatus;
-
-
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use Illuminate\Notifications\Action;
 use Illuminate\Support\Facades\Log;
 use stdClass;
 
@@ -45,35 +43,6 @@ class CPE extends Model implements ICpeContract
     protected $actionsTodo;
     protected $cpe_info;
 
-    private function _setInitialEvents()
-    {
-        $acs = app()->make('App\Models\ACS');
-        $count1 = ACS::$count;
-        print_r("CPE: _setInitialEvents() acs count = $count1\n");
-        $acs = app()->make('App\Models\ACS');
-        $count1 = ACS::$count;
-        print_r("CPE: _setInitialEvents() acs count = $count1\n");
-        $this->actionsTodo = array([
-            'event'=> SoapActionType::EVENT_HTTP_AUTH,
-            'stage'=> SoapActionStatus::STAGE_INITIAL,
-            'data'=>''
-        ],
-        [
-             'event'=>SoapActionType::EVENT_BOOTSTRAP,
-             'stage'=>SoapActionStatus::STAGE_INITIAL,
-             'data'=>'',
-        ]);
-
-        if(!$acs->acsGetCPEAuthable())
-        {
-            $this->actionsTodo = array(
-            [
-                'event'=>SoapActionType::EVENT_BOOTSTRAP,
-                'stage'=>SoapActionStatus::STAGE_INITIAL,
-                'data'=>'',
-            ]);
-        }
-    }
     /**
      * @param array $credential
      * @return bool
@@ -102,7 +71,21 @@ class CPE extends Model implements ICpeContract
 
     private function _buildToDoActionChain()
     {
-        $actionsTodo = $this->actionsTodo;
+        $actionsTodo = array([
+            'event'=> SoapActionEvent::HTTP_AUTH,
+            'stage'=> SoapActionStage::STAGE_INITIAL,
+            'data'=>''
+        ]);
+
+        if(!AcsFacade::acsGetCPEAuthable())
+        {
+            $actionsTodo = array([
+                    'event'=>SoapActionEvent::BOOTSTRAP,
+                    'stage'=>SoapActionStage::STAGE_INITIAL,
+                    'data'=>''
+            ]);
+        }
+
         foreach ($actionsTodo as $index=>$action)
         {
             $this->_actionInsert($action['event'],
@@ -128,14 +111,13 @@ class CPE extends Model implements ICpeContract
     public function __construct($attributes = array())
     {
         parent::__construct($attributes);
-        print_r("CPE::__constructor__\n");
-        $this->_setInitialEvents();
     }
 
     public function cpeCreate($cpe_info)
     {
         if (empty($cpe_info))
         {
+            Log::error('The CPE information is empty, create CPE failed.');
             return null;
         }
 
@@ -152,20 +134,8 @@ class CPE extends Model implements ICpeContract
         $this->save();
         $this->_buildToDoActionChain();
 
-        return $this;
     }
-/*
-    public function cpeLogin($credential)
-    {
-        $status_code = CPE::STATUS_FAILED;
 
-        if ($this->_savedUserAuth($credential))
-        {
-            $status_code = CPE::STATUS_SUCCEEDED;
-        }
-        return $status_code;
-    }
-*/
     public function action()
     {
         return $this->hasMany(SoapAction::class,'fk_cpe_id','id');
@@ -187,34 +157,26 @@ class CPE extends Model implements ICpeContract
         return $actions;
     }
 
-    public function cpeGetActionsTodo()
-    {
-        return $this->actionsTodo;
-    }
-
     public function cpeDoAction(SoapAction $action)
     {
-        $result = array(
-            'code'=>403,
-            'content'=>'',
-        );
+        $result = array();
         switch ($action->getAttribute('event'))
         {
-            case SoapActionType::EVENT_BOOTSTRAP:
-            case SoapActionType::EVENT_BOOT:
+            case SoapActionEvent::BOOTSTRAP:
+            case SoapActionEvent::BOOT:
                 if(empty($action->getAttribute('request')))
                 {
                     Log::warning('the request is empty which will cause an abnormal record in session log');
                 }
                 $data = json_decode($action->getAttribute('data'),true);
-                $result['content'] = SoapFacade::soapBuildInformResponse($data['ID']);
+                $result['content'] = SoapFacade::BuildInformResponse($data['ID']);
                 $result['code']=200;
                 $action->update([
                     'response'=>$result['content'],
                     'status'=> SoapActionStatus::STATUS_FINISHED,
                 ]);
                 break;
-            case SoapActionType::EVENT_HTTP_AUTH:
+            case SoapActionEvent::HTTP_AUTH:
                 $http_authentication = $action->getAttribute('data');
                 $blankAuthentication = 'Basic ' . base64_encode(':');
                 if ( empty($http_authentication) )
@@ -235,24 +197,61 @@ class CPE extends Model implements ICpeContract
                         'Device.ManagementServer.Password'=>'xwhSLiQAwOXlLeVX',
                         'Device.ManagementServer.URL'=>'http://58.162.32.33/cwmp/cwmp'
                     );
-                    $new_action->setAttribute('event',SoapAction::EVENT_SETPARAMETER);
+                    $new_action->setAttribute('event',SoapActionEvent::SET_PARAMETER);
                     $new_action->setAttribute('request',$data);
                     $this->action()->save($new_action);
-                    $this->cpeDoAction($new_action);
                 }
                 else
                 {
-
+                    $new_action = new SoapAction();
+                    $new_action->setAttribute('event',SoapActionEvent::BOOTSTRAP);
+                    $this->action()->save($new_action);
                 }
 
                 break;
-            case SoapActionType::EVENT_SETPARAMETER:
-
+            case SoapActionEvent::SET_PARAMETER:
+                $result['code'] = 200;
+                $result['content'] ='';
                 break;
             default:
+                $result['code'] = 403;
+                $result['content'] ='';
         }
 
         return $result;
+    }
+
+    /**
+     * @param string $httpContent
+     * @return array
+     */
+    public function cpeStartActionChain(string $httpContent)
+    {
+        Log::info('Start the cpe action chain');
+        $actions = $this->cpeGetReadyActions();
+        $action = $actions->first();
+
+        if ($action->actionGetDirection() == SoapActionDirection::REQUEST)
+        {
+            $action->setAttribute('request', $httpContent);
+        }
+        else if ($action->actionGetDirection() == SoapActionDirection::RESPONSE)
+        {
+            $action->setAttribute('response', $httpContent);
+        }
+        else
+        {
+            Log::warning('The action direction is UNKNOWN');
+        }
+
+        $result = $this->cpeDoAction($action);
+
+        return $result;
+    }
+
+    public function cpeInsertActions(SoapAction $action)
+    {
+        $this->action()->save($action);
     }
 
     public function cpeHandleSoap($soap)

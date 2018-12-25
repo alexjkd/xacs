@@ -188,7 +188,6 @@ return [
     */
 
     'aliases' => array(
-
         'App' => Illuminate\Support\Facades\App::class,
         'Artisan' => Illuminate\Support\Facades\Artisan::class,
         'Auth' => Illuminate\Support\Facades\Auth::class,
@@ -223,6 +222,7 @@ return [
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
         'Soap' => App\Models\Facades\SoapFacade::class,
+        'Acs' => App\Models\Facades\AcsFacade::class,
 
     ),
 

@@ -10,10 +10,7 @@ namespace App\Models;
 
 use App\Interfaces\IDataModelContract;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\Model;
-use SimpleXMLElement;
-use SimpleXMLIterator;
+
 
 class SoapEngine
 {
@@ -25,7 +22,6 @@ class SoapEngine
 
 
     const STATUS_OK="0";
-    const INFROM_BOOTSTRAP="0";
 
     public function __construct()
     {
@@ -83,9 +79,26 @@ class SoapEngine
         return true;
     }
 
-    public static function GetSoapType(string $soap_xml)
+    /**
+     * @param string $soap
+     * @return array
+     */
+    public static function GetSoapType(string $soap)
     {
-        return SoapEngine::INFROM_BOOTSTRAP;
+        $data = self::ParseInformRequest($soap);
+        $type = array();
+
+        if(isset($data['EventStruct']))
+        {
+            foreach ($data['EventStruct'] as $event => $code)
+            {
+                if(SoapActionEvent::isValidValue($code))
+                {
+                    $type[]=$code;
+                }
+            }
+            return $type;
+        }
     }
 
     public static function ParseInformRequest($soap)
@@ -108,7 +121,7 @@ class SoapEngine
         {
             //0 BOOTSTRAP
             $name_value = explode(' ',$value->EventCode);
-            $data['EventStruct'][ (string)$name_value[1]] = (string)$name_value[0];
+            $data['EventStruct'][ (string)$name_value[1]] = (integer)$name_value[0];
         }
         $data['MaxEnvelopes'] = (integer)$inform->MaxEnvelopes;
         $data['CurrentTime'] = (string)$inform->CurrentTime;
@@ -121,7 +134,7 @@ class SoapEngine
 
         return $data;
     }
-    public static function soapBuildInformResponse($ID)
+    public static function BuildInformResponse($ID)
     {
         $informResponse = self::$templateInformResponse;
         $informResponse = str_replace('{@ID}',$ID,$informResponse);
@@ -129,7 +142,7 @@ class SoapEngine
         return $informResponse;
     }
 
-    public static function soapBuildSetParameterRequest($data, IDataModelContract $dataModel)
+    public static function BuildSetParameterRequest($data, IDataModelContract $dataModel)
     {
         $struct = '';
         foreach ($data as $key=>$value)
@@ -148,7 +161,7 @@ class SoapEngine
         return $setParameterRequest;
     }
 
-    public static function soapParseSetParameterResponse($soap)
+    public static function ParseSetParameterResponse($soap)
     {
         $xml = simplexml_load_string($soap);
         $ns = $xml->getNamespaces(true);
@@ -160,12 +173,6 @@ class SoapEngine
 
         return $status[0];
     }
-
-    public static function soapGetActionType($soap)
-    {
-
-    }
-
 //----------------------------------------------------------------------------
     public function soapBuildGetParameterRequest($data)
     {

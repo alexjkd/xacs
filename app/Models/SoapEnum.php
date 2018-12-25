@@ -13,17 +13,29 @@ use App\Interfaces\Enum;
 
 class SoapActionStatus extends Enum
 {
-    const STAGE_INITIAL=0;
-    const STAGE_USER=1;
     const STATUS_FINISHED = 2;
-    const STATUS_READY= 3;
+    const STATUS_READY = 3;
 }
 
-class SoapActionType extends Enum
+class SoapActionEvent extends Enum
 {
-    const EVENT_HTTP_AUTH=-1;
-    const EVENT_BOOTSTRAP=0;
-    const EVENT_BOOT=1;
-    const EVENT_GETPARAMETER= 2;
-    const EVENT_SETPARAMETER= 3;
+    const UNKNOWN = -2;
+    const HTTP_AUTH = -1;
+    const BOOTSTRAP = 0;
+    const BOOT = 1;
+    const EVENT_GETPARAMETER = 2;
+    const SET_PARAMETER = 3;
+}
+
+class SoapActionStage extends Enum
+{
+    const STAGE_INITIAL= 0;
+    const STAGE_USER = 1;
+}
+
+class SoapActionDirection extends Enum
+{
+    const UNKNOWN = -1;
+    const REQUEST = 0;
+    const RESPONSE = 1;
 }

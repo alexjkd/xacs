@@ -8,6 +8,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\SoapActionEvent;
 use App\Models\SoapEngine;
 use App\Models\Facades\SoapFacade;
 use Tests\TestCase;
@@ -78,7 +79,7 @@ class SoapTest extends TestCase
         $expected_response = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
         $this->assertTrue(SoapFacade::ValidSoap($expected_response));
 
-        $response = SoapEngine::soapBuildInformResponse($data['ID']);
+        $response = SoapEngine::BuildInformResponse($data['ID']);
         $this->assertEquals($expected_response, $response);
     }
 
@@ -153,7 +154,7 @@ class SoapTest extends TestCase
             'Device.ManagementServer.URL'=>'http://58.162.32.33/cwmp/cwmp'
         );
 
-        $soap = SoapEngine::soapBuildSetParameterRequest($data, $this->datamodel);
+        $soap = SoapEngine::BuildSetParameterRequest($data, $this->datamodel);
         $this->assertTrue(SoapFacade::ValidSoap($soap));
         return $soap;
     }
@@ -166,8 +167,20 @@ class SoapTest extends TestCase
         $soap = file_get_contents(base_path('tests/soap/SET_PARAMETERS_RESPONSE.xml'));
         $this->assertTrue(SoapFacade::ValidSoap($soap));
 
-        $status = SoapEngine::soapParseSetParameterResponse($soap);
+        $status = SoapEngine::ParseSetParameterResponse($soap);
         $this->assertEquals(SoapEngine::STATUS_OK,$status);
+    }
+
+    public function testSoapGetSoapType()
+    {
+        $soap = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+        $this->assertTrue(SoapFacade::ValidSoap($soap));
+
+        $type = SoapEngine::GetSoapType($soap);
+        $expected_str = json_encode(array(SoapActionEvent::fromString("BOOTSTRAP"),
+            SoapActionEvent::fromString("BOOT")));
+        $type_json = json_encode($type);
+        $this->assertEquals($expected_str, $type_json);
     }
 
     public function tearDown()

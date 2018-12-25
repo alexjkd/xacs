@@ -9,9 +9,6 @@
 namespace App\Interfaces;
 
 
-use Illuminate\Http\Request;
-
-
 interface ICpeContract
 {
     public function cpeCreate($cpe_info);

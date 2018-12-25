@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\ACS;
 use Illuminate\Support\ServiceProvider;
 
 class AcsServiceProvider extends ServiceProvider
@@ -26,7 +27,10 @@ class AcsServiceProvider extends ServiceProvider
         $this->app->bind('App\Interfaces\ICpeContract', 'App\Models\CPE');
         $this->app->bind('App\Interfaces\IInformContract', 'App\Models\Inform');
         $this->app->bind('App\Interface\IDataModelContract','App\Models\DataModel');
-        $this->app->singleton('App\Models\ACS');
         $this->app->bind('soap', \App\Models\SoapEngine::class);
+        //bind it to a share object to use as a singleton object
+        $this->app->singleton('acs',function(){
+            return ACS::singleton();
+        });
     }
 }
