@@ -59,102 +59,7 @@ class CPE extends Model implements ICpeContract
         return $validated;
     }
 
-    private function _actionInsert($event, $data=null)
-    {
-        $action = new SoapAction();
-        $action->setAttribute('event',$event);
-        $action->setAttribute('stage',SoapActionStage::STAGE_INITIAL);
-        $action->setAttribute('data',$data);
-
-        $this->action()->save($action);
-    }
-
-    private function _buildToDoActionChain()
-    {
-        $this->_actionInsert(SoapActionEvent::BOOTSTRAP);
-    }
-//-------------------------------------------------------------------------
-    public static function make(stdClass $object)
-    {
-        return new self($object);
-    }
-
-    public static function makeCollection(array $collection)
-    {
-        foreach($collection AS $key => $Item)
-        {
-            $collection[$key] = self::make($Item);
-        }
-        return $collection;
-    }
-//-------------------------------------------------------------------------
-    public function __construct($attributes = array())
-    {
-        parent::__construct($attributes);
-    }
-
-    public function cpeCreate($cpe_info)
-    {
-        if (empty($cpe_info))
-        {
-            Log::error('The CPE information is empty, create CPE failed.');
-            return null;
-        }
-
-        foreach ($cpe_info['DeviceId'] as $key=>$value)
-        {
-            $this->setAttribute($key, $value);
-        }
-
-        //TODO: Should generate a ReqestUsername and RequestPassword for the device accordingly
-        $this->setAttribute('ConnectionRequestUser',$cpe_info['DeviceId']['ProductClass']);
-        $this->setAttribute('ConnectionRequestPassword',
-                             password_hash($cpe_info['DeviceId']['SerialNumber'],
-                             PASSWORD_DEFAULT));
-        $this->save();
-        $this->_buildToDoActionChain();
-
-    }
-
-    public function action()
-    {
-        return $this->hasMany(SoapAction::class,'fk_cpe_id','id');
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function cpeGetReadyActions()
-    {
-        /*
-         * need primary key and foreign key for updating
-         * */
-        $actions = $this->action()->select('id','fk_cpe_id','event','data','stage','status')
-            ->where('status',SoapActionStatus::STATUS_READY)
-            ->orderBy('id','desc')
-            ->get();
-
-        return $actions;
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function cpeHttpAuthActions()
-    {
-        /*
-         * need primary key and foreign key for updating
-         * */
-        $action = $this->action()->select('id','fk_cpe_id','event','data','stage','status')
-            ->where('event',SoapActionEvent::HTTP_AUTH)
-            ->where('status',SoapActionStatus::STATUS_READY)
-            ->orderBy('id','desc')
-            ->get();
-
-        return $action;
-    }
-
-    public function cpeDoAction(SoapAction $action)
+    private function _doAction(SoapAction $action)
     {
         $result = array(
             'code' => 500,
@@ -231,6 +136,102 @@ class CPE extends Model implements ICpeContract
 
         return $result;
     }
+//-------------------------------------------------------------------------
+    public static function make(stdClass $object)
+    {
+        return new self($object);
+    }
+
+    public static function makeCollection(array $collection)
+    {
+        foreach($collection AS $key => $Item)
+        {
+            $collection[$key] = self::make($Item);
+        }
+        return $collection;
+    }
+//-------------------------------------------------------------------------
+    public function __construct($attributes = array())
+    {
+        parent::__construct($attributes);
+    }
+
+    public function cpeCreate($cpe_info)
+    {
+        if (empty($cpe_info))
+        {
+            Log::error('The CPE information is empty, create CPE failed.');
+            return null;
+        }
+
+        foreach ($cpe_info['DeviceId'] as $key=>$value)
+        {
+            $this->setAttribute($key, $value);
+        }
+
+        //TODO: Should generate a ReqestUsername and RequestPassword for the device accordingly
+        $this->setAttribute('ConnectionRequestUser',$cpe_info['DeviceId']['ProductClass']);
+        $this->setAttribute('ConnectionRequestPassword',
+                             password_hash($cpe_info['DeviceId']['SerialNumber'],
+                             PASSWORD_DEFAULT));
+        $this->save();
+        $this->cpeInsertAction(SoapActionEvent::BOOTSTRAP);
+
+    }
+
+    public function action()
+    {
+        return $this->hasMany(SoapAction::class,'fk_cpe_id','id');
+    }
+
+    public function cpeInsertAction($event, $data=null)
+    {
+        $action = new SoapAction();
+        $action->setAttribute('event',$event);
+        $action->setAttribute('stage',SoapActionStage::STAGE_INITIAL);
+        $action->setAttribute('data',$data);
+
+        $this->action()->save($action);
+    }
+
+    public function cpeCleanReadyActions()
+    {
+        $this->action()->select('id','fk_cpe_id','event','data','stage','status')
+            ->where('status',SoapActionStatus::STATUS_READY)
+            ->delete();
+    }
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function cpeGetReadyActions()
+    {
+        /*
+         * need primary key and foreign key for updating
+         * */
+        $actions = $this->action()->select('id','fk_cpe_id','event','data','stage','status')
+            ->where('status',SoapActionStatus::STATUS_READY)
+            ->orderBy('id','desc')
+            ->get();
+
+        return $actions;
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function cpeHttpAuthActions()
+    {
+        /*
+         * need primary key and foreign key for updating
+         * */
+        $action = $this->action()->select('id','fk_cpe_id','event','data','stage','status')
+            ->where('event',SoapActionEvent::HTTP_AUTH)
+            ->where('status',SoapActionStatus::STATUS_READY)
+            ->orderBy('id','desc')
+            ->get();
+
+        return $action;
+    }
 
     /**
      * @param string $httpContent
@@ -256,7 +257,7 @@ class CPE extends Model implements ICpeContract
             $actions = $this->cpeHttpAuthActions();
             if($actions->isEmpty())
             {
-                $this->_actionInsert(SoapActionEvent::HTTP_AUTH,
+                $this->cpeInsertAction(SoapActionEvent::HTTP_AUTH,
                     json_encode(array('authentication'=> $authentication)));
             }
             else
@@ -301,13 +302,9 @@ class CPE extends Model implements ICpeContract
         }
 
 do_action:
-        $result = $this->cpeDoAction($action);
+        $result = $this->_doAction($action);
 
         return $result;
     }
 
-    public function cpeInsertActions(SoapAction $action)
-    {
-        $this->action()->save($action);
-    }
 }

@@ -129,59 +129,37 @@ class CPETest extends TestCase
         }
 
     }
-
+//------------------------------------------------------------------------------------
     /**
      * @depends testCpeCreate
-     * @param CPE $cpe
      */
-    public function testCpeDoAction($cpe)
+    public function testCpeCleanReadyActions()
     {
-        $expected_bootstrap = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
-        $test_request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+        $cpe = $this->testCpeCreate();
 
-        $initial_actions = array(
-            SoapActionEvent::BOOTSTRAP => array(
-                'test_request'=>$test_request,
-                'expected'=>$expected_bootstrap,
-            ),
-            SoapActionEvent::BOOT => array(
-                'test_request'=>$test_request,
-                'expected'=>$expected_bootstrap,
-            ),
-        );
-        $action = new SoapAction();
-        $action->setAttribute('event',SoapActionEvent::BOOTSTRAP);
-        $cpe->cpeInsertActions($action);
-
-        $action = new SoapAction();
-        $action->setAttribute('event',SoapActionEvent::BOOT);
-        $cpe->cpeInsertActions($action);
-
+        $cpe->cpeCleanReadyActions();
         $actions = $cpe->cpeGetReadyActions();
 
-        foreach ($actions as $action)
-        {
-            foreach ($initial_actions as $key=>$value)
-            {
-                if ($action->getAttribute('event') === $key)
-                {
-                    $action->setAttribute('request', $value['test_request']);
-                    $action->setAttribute('data',
-                        json_encode(SoapFacade::ParseInformRequest($value['test_request'])));
-                    $result = $cpe->cpeDoAction($action);
-
-                    $this->assertTrue(SoapFacade::ValidSoap($value['expected']));
-                    $this->assertEquals($value['expected'],$result['content']);
-                    $this->assertDatabaseHas('soap_actions',[
-                        'fk_cpe_id'=>$cpe->getAttribute('id'),
-                        'request' =>$value['test_request'],
-                        'response'=>$result['content'],
-                    ]);
-                }
-            }
-        }
+        $this->assertTrue($actions->isEmpty());
     }
-//-----------------------------------------------------------
+    /**
+     * @depends testCpeCreate
+     */
+    public function testCpeInsertAction()
+    {
+        $cpe = $this->testCpeCreate();
+
+        $authentication = 'Basic ' . base64_encode('insert:insert');
+        $data = json_encode(array('authentication'=> $authentication));
+        $cpe->cpeInsertAction(SoapActionEvent::HTTP_AUTH,$data);
+
+        $this->assertDatabaseHas('soap_actions',[
+            'fk_cpe_id'=>$cpe->getAttribute('id'),
+            'event' => SoapActionEvent::HTTP_AUTH,
+            'data'=> $data,
+        ]);
+    }
+//--------- CPE Authentication Test --------------------------------------------------
     /**
      * @depends testCpeCreate
      */
@@ -254,6 +232,57 @@ class CPETest extends TestCase
 
         $result = $cpe->cpeStartActionChain($request,$header);
         $this->assertEquals(403,$result['code']);
+    }
+//--------- CPE Execute Action Test --------------------------------------------------
+    /**
+     * @depends testCpeCreate
+     * @depends testCpeCleanReadyActions
+     * @depends testCpeInsertAction
+     */
+    public function testCpeBootStrapAction()
+    {
+        $expected_response = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
+        $test_request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+
+        $cpe = $this->testCpeCreate();
+        $cpe->cpeCleanReadyActions();
+
+        $data = json_encode(SoapFacade::ParseInformRequest($test_request));
+        $cpe->cpeInsertAction(SoapActionEvent::BOOTSTRAP,$data);
+        AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
+        AcsFacade::getFacadeRoot()->makePartial();
+
+        $result = $cpe->cpeStartActionChain($test_request);
+        $this->assertEquals($expected_response, $result['content']);
+        $this->assertDatabaseHas('soap_actions',[
+            'fk_cpe_id'=>$cpe->getAttribute('id'),
+            'request' =>$test_request,
+            'response'=>$expected_response,
+        ]);
+    }
+    /**
+     * @depends testCpeCreate
+     * @depends testCpeInsertAction
+     */
+    public function testCpeBootAction()
+    {
+        $expected_response = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
+        $test_request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+
+        $cpe = $this->testCpeCreate();
+
+        $data = json_encode(SoapFacade::ParseInformRequest($test_request));
+        $cpe->cpeInsertAction(SoapActionEvent::BOOT,$data);
+        AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
+        AcsFacade::getFacadeRoot()->makePartial();
+
+        $result = $cpe->cpeStartActionChain($test_request);
+        $this->assertEquals($expected_response, $result['content']);
+        $this->assertDatabaseHas('soap_actions',[
+            'fk_cpe_id'=>$cpe->getAttribute('id'),
+            'request' =>$test_request,
+            'response'=>$expected_response,
+        ]);
     }
 
     public function tearDown()
