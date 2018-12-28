@@ -18,7 +18,7 @@ class SoapEngine
 
     private static $templateParameterStruct;
     private static $templateSetParameterRequest;
-    private $templateGetParameterRequest;
+    private static $templateGetParameterRequest;
 
 
     const STATUS_OK="0";
@@ -28,7 +28,7 @@ class SoapEngine
         self::$templateParameterStruct = File::get(base_path('app/Models/xml/ParameterStruct.xml'));
         self::$templateSetParameterRequest = File::get(base_path('app/Models/xml/SetParamerterRequest.xml'));
         self::$templateInformResponse = File::get(base_path('app/Models/xml/InformResponse.xml'));
-        $this->templateGetParameterRequest = File::get(base_path('app/Models/xml/GetParameterRequest.xml'));
+        self::$templateGetParameterRequest = File::get(base_path('app/Models/xml/GetParameterRequest.xml'));
     }
     protected static function _display_error($error)
     {
@@ -149,7 +149,7 @@ class SoapEngine
             $dataModel = new DataModel();
         }
         $struct = '';
-        foreach ($data as $key=>$value)
+        foreach ($data['values'] as $key=>$value)
         {
             $type = $dataModel->dataGetType($key);
             $entry = self::$templateParameterStruct;
@@ -159,6 +159,7 @@ class SoapEngine
             $struct = sprintf("%s%s",$entry,$struct);
         }
         $setParameterRequest = self::$templateSetParameterRequest;
+        $setParameterRequest = str_replace('{@CWMPID}',$data['cwmpid'],$setParameterRequest);
         $setParameterRequest = str_replace('{@PARAMETER_NUM}',count($data),$setParameterRequest);
         $setParameterRequest = str_replace('{@PARAMETER_VALUE_STRUCT}',$struct,$setParameterRequest);
 
@@ -177,10 +178,10 @@ class SoapEngine
 
         return $status[0];
     }
-//----------------------------------------------------------------------------
-    public function soapBuildGetParameterRequest($data)
+
+    public static function BuildGetParameterRequest($data)
     {
-        $getParameterRequest = $this->templateGetParameterRequest;
+        $getParameterRequest = self::$templateGetParameterRequest;
         $getParameterRequest = str_replace('{@COUNT}',count($data), $getParameterRequest);
 
         foreach ($data as $key=>$value)
@@ -192,7 +193,7 @@ class SoapEngine
 
     }
 
-    public function soapParseGetParameterResponse($soap)
+    public static  function ParseGetParameterResponse($soap)
     {
         $xml = simplexml_load_string($soap);
         $ns = $xml->getNamespaces(true);
@@ -210,8 +211,9 @@ class SoapEngine
         }
 
         return $data;
-
     }
+//----------------------------------------------------------------------------
+
 //-----------------------------------------------------------------------------
     /*
         private function xml_to_array( $xml )

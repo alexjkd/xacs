@@ -63,6 +63,7 @@ class SoapTest extends TestCase
             ),
         );
 
+        $engine = new SoapEngine();
         $data = SoapEngine::ParseInformRequest($soap);
 
         $this->assertEquals($expected_data, $data);
@@ -91,8 +92,8 @@ class SoapTest extends TestCase
         $parameter = array(
             0 => 'Device.Time.',
         );
-        $engine = new SoapEngine();
-        $getparameter = $engine->soapBuildGetParameterRequest($parameter);
+
+        $getparameter = SoapFacade::BuildGetParameterRequest($parameter);
         $this->assertEquals($expected_getparameter, $getparameter);
     }
 
@@ -138,8 +139,7 @@ class SoapTest extends TestCase
             ),
         );
 
-        $engine = new SoapEngine();
-        $actual_data = $engine->soapParseGetParameterResponse($soap);
+        $actual_data = SoapFacade::ParseGetParameterResponse($soap);
 
         $this->assertEquals($expected_data,$actual_data);
     }
@@ -148,13 +148,15 @@ class SoapTest extends TestCase
     {
         $this->datamodel->shouldReceive('dataGetType')->andReturn('xstns:string');
 
-        $data = array (
+        $data = array(
+            'cwmpid'=>1234567,
+            'values'=> [
             'Device.ManagementServer.Username'=>'08028E-08028EEF0B00',
             'Device.ManagementServer.Password'=>'xwhSLiQAwOXlLeVX',
             'Device.ManagementServer.URL'=>'http://58.162.32.33/cwmp/cwmp'
-        );
+        ]);
 
-        $soap = SoapEngine::BuildSetParameterRequest($data, $this->datamodel);
+        $soap = SoapFacade::BuildSetParameterRequest($data, $this->datamodel);
         $this->assertTrue(SoapFacade::ValidSoap($soap));
         return $soap;
     }
@@ -167,7 +169,7 @@ class SoapTest extends TestCase
         $soap = file_get_contents(base_path('tests/soap/SET_PARAMETERS_RESPONSE.xml'));
         $this->assertTrue(SoapFacade::ValidSoap($soap));
 
-        $status = SoapEngine::ParseSetParameterResponse($soap);
+        $status = SoapFacade::ParseSetParameterResponse($soap);
         $this->assertEquals(SoapEngine::STATUS_OK,$status);
     }
 
@@ -176,7 +178,7 @@ class SoapTest extends TestCase
         $soap = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
         $this->assertTrue(SoapFacade::ValidSoap($soap));
 
-        $type = SoapEngine::GetSoapType($soap);
+        $type = SoapFacade::GetSoapType($soap);
         $expected_str = json_encode(array(SoapActionEvent::fromString("BOOTSTRAP"),
             SoapActionEvent::fromString("BOOT")));
         $type_json = json_encode($type);
