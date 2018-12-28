@@ -9,6 +9,7 @@ use App\Models\SoapActionEvent;
 use App\Models\SoapActionStatus;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use stdClass;
@@ -40,7 +41,6 @@ class CPE extends Model implements ICpeContract
 
     protected $table = 'cpes';
     protected $isLogin = false;
-    protected $actionsTodo;
     protected $cpe_info;
 
     /**
@@ -59,11 +59,11 @@ class CPE extends Model implements ICpeContract
         return $validated;
     }
 
-    private function _actionInsert($event, $stage, $data)
+    private function _actionInsert($event, $data=null)
     {
         $action = new SoapAction();
         $action->setAttribute('event',$event);
-        $action->setAttribute('stage',$stage);
+        $action->setAttribute('stage',SoapActionStage::STAGE_INITIAL);
         $action->setAttribute('data',$data);
 
         $this->action()->save($action);
@@ -71,27 +71,7 @@ class CPE extends Model implements ICpeContract
 
     private function _buildToDoActionChain()
     {
-        $actionsTodo = array([
-            'event'=> SoapActionEvent::HTTP_AUTH,
-            'stage'=> SoapActionStage::STAGE_INITIAL,
-            'data'=>''
-        ]);
-
-        if(!AcsFacade::acsGetCPEAuthable())
-        {
-            $actionsTodo = array([
-                    'event'=>SoapActionEvent::BOOTSTRAP,
-                    'stage'=>SoapActionStage::STAGE_INITIAL,
-                    'data'=>''
-            ]);
-        }
-
-        foreach ($actionsTodo as $index=>$action)
-        {
-            $this->_actionInsert($action['event'],
-                                 $action['stage'],
-                                 $action['data']);
-        }
+        $this->_actionInsert(SoapActionEvent::BOOTSTRAP);
     }
 //-------------------------------------------------------------------------
     public static function make(stdClass $object)
@@ -149,7 +129,7 @@ class CPE extends Model implements ICpeContract
         /*
          * need primary key and foreign key for updating
          * */
-        $actions = $this->action()->select('id','fk_cpe_id','event','stage','status')
+        $actions = $this->action()->select('id','fk_cpe_id','event','data','stage','status')
             ->where('status',SoapActionStatus::STATUS_READY)
             ->orderBy('id','desc')
             ->get();
@@ -157,18 +137,46 @@ class CPE extends Model implements ICpeContract
         return $actions;
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function cpeHttpAuthActions()
+    {
+        /*
+         * need primary key and foreign key for updating
+         * */
+        $action = $this->action()->select('id','fk_cpe_id','event','data','stage','status')
+            ->where('event',SoapActionEvent::HTTP_AUTH)
+            ->where('status',SoapActionStatus::STATUS_READY)
+            ->orderBy('id','desc')
+            ->get();
+
+        return $action;
+    }
+
     public function cpeDoAction(SoapAction $action)
     {
-        $result = array();
+        $result = array(
+            'code' => 500,
+            'content' =>'',
+        );
+
         switch ($action->getAttribute('event'))
         {
             case SoapActionEvent::BOOTSTRAP:
             case SoapActionEvent::BOOT:
                 if(empty($action->getAttribute('request')))
                 {
-                    Log::warning('the request is empty which will cause an abnormal record in session log');
+                    Log::warning('the http content is empty which will cause an abnormal record in session log');
                 }
                 $data = json_decode($action->getAttribute('data'),true);
+                if(empty($data))
+                {
+                    Log::error('parse the http content failed!');
+                    $result['code'] = 500;
+                    $result['content'] ='parse the http content failed.';
+                    break;
+                }
                 $result['content'] = SoapFacade::BuildInformResponse($data['ID']);
                 $result['code']=200;
                 $action->update([
@@ -177,10 +185,14 @@ class CPE extends Model implements ICpeContract
                 ]);
                 break;
             case SoapActionEvent::HTTP_AUTH:
-                $http_authentication = $action->getAttribute('data');
+                $data = json_decode($action->getAttribute('data'),true);
+                $http_authentication = $data['authentication'];
                 $blankAuthentication = 'Basic ' . base64_encode(':');
                 if ( empty($http_authentication) )
                 {
+                    Log::warning('There is no http authentication headers, but ACS need auth.');
+                    $result['code'] = 401;
+                    $result['content'] ='';
                     break;
                 }
 
@@ -198,20 +210,19 @@ class CPE extends Model implements ICpeContract
                         'Device.ManagementServer.URL'=>'http://58.162.32.33/cwmp/cwmp'
                     );
                     $new_action->setAttribute('event',SoapActionEvent::SET_PARAMETER);
-                    $new_action->setAttribute('request',$data);
+                    $new_action->setAttribute('data',json_encode($data));
+                    $new_action->setAttribute('request',SoapFacade::BuildSetParameterRequest($data));
                     $this->action()->save($new_action);
                 }
                 else
                 {
-                    $new_action = new SoapAction();
-                    $new_action->setAttribute('event',SoapActionEvent::BOOTSTRAP);
-                    $this->action()->save($new_action);
+                    //todo if auth failed, need to response the 401 and clean the action chain.
                 }
 
                 break;
             case SoapActionEvent::SET_PARAMETER:
-                $result['code'] = 200;
-                $result['content'] ='';
+                //need to send request for the setting parameter
+
                 break;
             default:
                 $result['code'] = 403;
@@ -225,15 +236,60 @@ class CPE extends Model implements ICpeContract
      * @param string $httpContent
      * @return array
      */
-    public function cpeStartActionChain(string $httpContent)
+    public function cpeStartActionChain(string $httpContent, string $authentication=null)
     {
         Log::info('Start the cpe action chain');
         $actions = $this->cpeGetReadyActions();
+        $result = array();
+
+        if($actions->isEmpty())
+        {
+            Log::warning('No action items to do for this CPE.');
+            return $result;
+        }
         $action = $actions->first();
+
+        if(AcsFacade::acsGetCPEAuthable())
+        {
+            Log::info('ACS need authentication, add auth action to do authentication first');
+
+            $actions = $this->cpeHttpAuthActions();
+            if($actions->isEmpty())
+            {
+                $this->_actionInsert(SoapActionEvent::HTTP_AUTH,
+                    json_encode(array('authentication'=> $authentication)));
+            }
+            else
+            {
+                $actions->first()->update(['data' =>
+                    json_encode(array('authentication'=> $authentication))]);
+            }
+            /*
+            try {
+                $action = $this->cpeHttpAuthActions();
+                $action->update(['data' =>
+                    json_encode(array('authentication'=> $authentication))]);
+            }catch (\Exception $e) {
+                if ($e instanceof ModelNotFoundException )
+                {
+                    $this->_actionInsert(SoapActionEvent::HTTP_AUTH,
+                        json_encode(array('authentication'=> $authentication)));
+                }
+            }
+            */
+
+            $action = $this->cpeGetReadyActions()->first();
+
+            goto do_action;
+        }
 
         if ($action->actionGetDirection() == SoapActionDirection::REQUEST)
         {
+
             $action->setAttribute('request', $httpContent);
+            //todo:set action data part according to the session type
+            $action->setAttribute('data',
+                json_encode(SoapFacade::ParseInformRequest($httpContent)));
         }
         else if ($action->actionGetDirection() == SoapActionDirection::RESPONSE)
         {
@@ -244,6 +300,7 @@ class CPE extends Model implements ICpeContract
             Log::warning('The action direction is UNKNOWN');
         }
 
+do_action:
         $result = $this->cpeDoAction($action);
 
         return $result;
@@ -253,10 +310,4 @@ class CPE extends Model implements ICpeContract
     {
         $this->action()->save($action);
     }
-
-    public function cpeHandleSoap($soap)
-    {
-    }
-
-
 }

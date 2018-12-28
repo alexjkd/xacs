@@ -30,7 +30,6 @@ class SoapAction extends Model
         {
             case SoapActionEvent::BOOT:
             case SoapActionEvent::BOOTSTRAP:
-            case SoapActionEvent::HTTP_AUTH:
                 $direction = SoapActionDirection::REQUEST;
                 break;
             default:

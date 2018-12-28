@@ -142,8 +142,12 @@ class SoapEngine
         return $informResponse;
     }
 
-    public static function BuildSetParameterRequest($data, IDataModelContract $dataModel)
+    public static function BuildSetParameterRequest($data, IDataModelContract $dataModel = null)
     {
+        if ($dataModel === null)
+        {
+            $dataModel = new DataModel();
+        }
         $struct = '';
         foreach ($data as $key=>$value)
         {

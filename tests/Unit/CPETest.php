@@ -13,11 +13,9 @@ use App\Models\SoapActionStage;
 use App\Models\SoapActionStatus;
 use App\Models\SoapActionEvent;
 use App\Models\CPE;
-use App\Models\ACS;
 use App\Models\Facades\SoapFacade;
 use App\Models\SoapAction;
 
-use Illuminate\Notifications\Action;
 use Tests\TestCase;
 
 class CPETest extends TestCase
@@ -49,31 +47,6 @@ class CPETest extends TestCase
         $this->assertEquals(CPE::STATUS_SUCCEEDED, $this->cpe->cpeLogin($user_test));
         $this->assertEquals(CPE::STATUS_FAILED, $this->cpe->cpeLogin($user_invalid));
     }
-
-    public function testCepInitialTodoActions($cpe)
-    {
-         $initialEvents = array(
-            '0'=>SoapActionEvent::EVENT_HTTP_AUTH,
-            '1'=>SoapActionEvent::BOOTSTRAP,
-            '2'=>SoapActionEvent::BOOT,
-        );
-
-        $events = array_column($cpe->cpeGetActionsTodo(),'event');
-
-        foreach ($events as $key=>$value)
-        {
-            $this->assertTrue(in_array($value,$initialEvents));
-        }
-
-        $stage = array_column($cpe->cpeGetActionsTodo(), 'stage');
-        foreach ($stage as $key=>$value)
-        {
-            $this->assertEquals($value,SoapActionStage::STAGE_INITIAL);
-        }
-
-        return $initialEvents;
-    }
-
 */
     /**
      * @return CPE
@@ -81,6 +54,7 @@ class CPETest extends TestCase
     public function testCpeCreate()
     {
         $this->artisan('migrate:refresh');
+
         $cpe_info = array(
             'ID'=>1641837687,
             'DeviceId'=> array(
@@ -124,7 +98,6 @@ class CPETest extends TestCase
     /**
      * @depends testCpeCreate
      * @param CPE $cpe
-     * @return \Illuminate\Database\Eloquent\Collection
      */
     public function testCpeGetReadyActions($cpe)
     {
@@ -155,12 +128,10 @@ class CPETest extends TestCase
             $this->assertTrue(in_array($action->getAttribute('event'), $initialEvents));
         }
 
-        return $actions;
     }
 
     /**
      * @depends testCpeCreate
-     * @depends testCpeGetReadyActions
      * @param CPE $cpe
      */
     public function testCpeDoAction($cpe)
@@ -198,6 +169,7 @@ class CPETest extends TestCase
                     $action->setAttribute('data',
                         json_encode(SoapFacade::ParseInformRequest($value['test_request'])));
                     $result = $cpe->cpeDoAction($action);
+
                     $this->assertTrue(SoapFacade::ValidSoap($value['expected']));
                     $this->assertEquals($value['expected'],$result['content']);
                     $this->assertDatabaseHas('soap_actions',[
@@ -208,32 +180,85 @@ class CPETest extends TestCase
                 }
             }
         }
-
-        $this->artisan('migrate:refresh');
     }
-
+//-----------------------------------------------------------
     /**
      * @depends testCpeCreate
-     * @depends testCpeGetReadyActions
-     * @param CPE $cpe
-     * @param \Illuminate\Database\Eloquent\Collection $actions
      */
-    public function testCpeStartActionChain()
+    public function testCpeStartActionWithoutAuth()
     {
+        $cpe = $this->testCpeCreate();
+
+        $request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+        $expected_response = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
         AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
         AcsFacade::getFacadeRoot()->makePartial();
-        $request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
-
-        $cpe = $this->testCpeCreate();
 
         $result = $cpe->cpeStartActionChain($request);
 
         $this->assertEquals(200,$result['code']);
+        $this->assertEquals($expected_response, $result['content']);
     }
 
+    /**
+     * @depends testCpeCreate
+     * @return CPE
+     */
+    public function testCpeLackOfAuth()
+    {
+        $cpe = $this->testCpeCreate();
+
+        $request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+
+        $result = $cpe->cpeStartActionChain($request);
+        $this->assertEquals(401,$result['code']);
+
+        return $cpe;
+    }
+    /**
+     * @depends testCpeLackOfAuth
+     * @return CPE
+     */
+    public function testCpeStartActionWithBlankAuth($cpe)
+    {
+        $header = 'Basic ' . base64_encode(':');
+        $request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+
+        $result = $cpe->cpeStartActionChain($request,$header);
+        $this->assertEquals(200,$result['code']);
+
+        return $cpe;
+    }
+
+    /**
+     * @depends testCpeStartActionWithBlankAuth
+     * @param CPE $cpe
+     */
+    public function testCpeActionAfterBlankAuth($cpe)
+    {
+        $actions = $cpe->cpeGetReadyActions()->first();
+
+        $this->assertEquals(SoapActionEvent::SET_PARAMETER,
+            $actions->getAttribute('event'));
+    }
+
+    /**
+     * @depends testCpeCreate
+     */
+    public function testCpeStartActionWithInvalidAuth()
+    {
+        $cpe = $this->testCpeCreate();
+
+        $header = 'Basic ' . base64_encode('test:test');
+        $request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+
+        $result = $cpe->cpeStartActionChain($request,$header);
+        $this->assertEquals(403,$result['code']);
+    }
 
     public function tearDown()
     {
         parent::tearDown();
+
     }
 }
