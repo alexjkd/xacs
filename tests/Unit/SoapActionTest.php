@@ -16,15 +16,18 @@ class SoapActionTest extends TestCase
     public function testCreateAction()
     {
         $soap = 'test';
+        $cwmpid = '123456abc';
         $this->artisan('migrate:refresh');
         $action = factory('App\Models\SoapAction')->create();
         $action->update([
-            'request'=>$soap,
-            'status'=> SoapActionStatus::STATUS_FINISHED,
+            'request'=> $soap,
+            'status' => SoapActionStatus::STATUS_FINISHED,
+            'cwmpid' => $cwmpid,
         ]);
         $this->assertDatabaseHas('soap_actions',[
             'request'=>$soap,
             'status'=> SoapActionStatus::STATUS_FINISHED,
+            'cwmpid'=>$cwmpid,
         ]);
     }
 }

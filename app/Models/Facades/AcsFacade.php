@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Facade;
  * Class AcsFacade
  * @package App\Models\Facades
  * @method bool acsGetCPEAuthable()
+ * @method integer acsGenerateCwmpdID()
  * @see \App\Models\ACS
  */
 class AcsFacade extends Facade

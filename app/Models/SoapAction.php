@@ -11,7 +11,7 @@ class SoapAction extends Model
      * fillable is the limited for create(),only attributes list can be fillable
      */
     protected $fillable=[
-        'stage', 'event', 'status', 'data', 'request','response'
+        'cwmpid', 'stage', 'event', 'status', 'data', 'request','response'
     ];
 
     public function cpe()
@@ -31,6 +31,9 @@ class SoapAction extends Model
             case SoapActionEvent::BOOT:
             case SoapActionEvent::BOOTSTRAP:
                 $direction = SoapActionDirection::REQUEST;
+                break;
+            case SoapActionEvent::SET_PARAMETER:
+                $direction = SoapActionDirection::RESPONSE;
                 break;
             default:
                 break;

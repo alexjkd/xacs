@@ -13,6 +13,7 @@ use App\Interfaces\Enum;
 
 class SoapActionStatus extends Enum
 {
+    const OK = 0;
     const STATUS_FINISHED = 2;
     const STATUS_READY = 3;
 }

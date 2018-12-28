@@ -18,6 +18,7 @@ class CreateSoapActionsTable extends Migration
     {
         Schema::create('soap_actions', function (Blueprint $table) {
             $table->increments('id');
+            $table->string('cwmpid',128)->default('unknown');
             $table->integer('stage')->default(SoapActionStage::STAGE_INITIAL);
             $table->integer('event')->nullable();
             $table->integer('status')->default(SoapActionStatus::STATUS_READY);

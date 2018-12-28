@@ -150,13 +150,15 @@ class CPETest extends TestCase
         $cpe = $this->testCpeCreate();
 
         $authentication = 'Basic ' . base64_encode('insert:insert');
-        $data = json_encode(array('authentication'=> $authentication));
+        $data = array('authentication'=> $authentication);
+        $expected_data = json_encode(array('authentication'=> $authentication));
+
         $cpe->cpeInsertAction(SoapActionEvent::HTTP_AUTH,$data);
 
         $this->assertDatabaseHas('soap_actions',[
             'fk_cpe_id'=>$cpe->getAttribute('id'),
             'event' => SoapActionEvent::HTTP_AUTH,
-            'data'=> $data,
+            'data'=> $expected_data,
         ]);
     }
 //--------- CPE Authentication Test --------------------------------------------------
@@ -211,6 +213,7 @@ class CPETest extends TestCase
     /**
      * @depends testCpeStartActionWithBlankAuth
      * @param CPE $cpe
+     * @return CPE
      */
     public function testCpeActionAfterBlankAuth($cpe)
     {
@@ -218,6 +221,7 @@ class CPETest extends TestCase
 
         $this->assertEquals(SoapActionEvent::SET_PARAMETER,
             $actions->getAttribute('event'));
+        return $cpe;
     }
 
     /**
@@ -235,7 +239,6 @@ class CPETest extends TestCase
     }
 //--------- CPE Execute Action Test --------------------------------------------------
     /**
-     * @depends testCpeCreate
      * @depends testCpeCleanReadyActions
      * @depends testCpeInsertAction
      */
@@ -243,14 +246,14 @@ class CPETest extends TestCase
     {
         $expected_response = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
         $test_request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+        AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
+        AcsFacade::getFacadeRoot()->makePartial();
 
         $cpe = $this->testCpeCreate();
         $cpe->cpeCleanReadyActions();
 
-        $data = json_encode(SoapFacade::ParseInformRequest($test_request));
+        $data = SoapFacade::ParseInformRequest($test_request);
         $cpe->cpeInsertAction(SoapActionEvent::BOOTSTRAP,$data);
-        AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
-        AcsFacade::getFacadeRoot()->makePartial();
 
         $result = $cpe->cpeStartActionChain($test_request);
         $this->assertEquals($expected_response, $result['content']);
@@ -261,20 +264,20 @@ class CPETest extends TestCase
         ]);
     }
     /**
-     * @depends testCpeCreate
      * @depends testCpeInsertAction
      */
     public function testCpeBootAction()
     {
         $expected_response = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
         $test_request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+        AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
+        AcsFacade::getFacadeRoot()->makePartial();
+
 
         $cpe = $this->testCpeCreate();
 
-        $data = json_encode(SoapFacade::ParseInformRequest($test_request));
+        $data = SoapFacade::ParseInformRequest($test_request);
         $cpe->cpeInsertAction(SoapActionEvent::BOOT,$data);
-        AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
-        AcsFacade::getFacadeRoot()->makePartial();
 
         $result = $cpe->cpeStartActionChain($test_request);
         $this->assertEquals($expected_response, $result['content']);
@@ -284,6 +287,33 @@ class CPETest extends TestCase
             'response'=>$expected_response,
         ]);
     }
+
+    /**
+     * @depends testCpeInsertAction
+     * @param CPE $cpe
+     */
+    public function testCpeSetParameterAction()
+    {
+        $response = file_get_contents(base_path('tests/soap/SET_PARAMETERS_RESPONSE.xml'));
+        AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
+        AcsFacade::shouldReceive('acsGenerateCwmpdID')->andReturn(123456);
+        AcsFacade::getFacadeRoot()->makePartial();
+
+        $data = array (
+            'cwmpid'=>AcsFacade::acsGenerateCwmpdID(),
+            'values'=>[
+                'Device.ManagementServer.Username'=>'08028E-08028EEF0B00',
+                'Device.ManagementServer.Password'=>'xwhSLiQAwOXlLeVX',
+                'Device.ManagementServer.URL'=>'http://58.162.32.33/cwmp/cwmp'
+            ]);
+        $cpe = $this->testCpeCreate();
+        $cpe->cpeInsertAction(SoapActionEvent::SET_PARAMETER,$data);
+
+        $result = $cpe->cpeStartActionChain($response);
+
+        $this->assertEquals(200, $result['code']);
+    }
+
 
     public function tearDown()
     {

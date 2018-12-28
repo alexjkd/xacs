@@ -14,5 +14,6 @@ $factory->define(App\Models\SoapAction::class, function (Faker $faker) {
             }
             return $cpe->id;
         },
+        'cwmpid'=>$faker->uuid,
     ];
 });
