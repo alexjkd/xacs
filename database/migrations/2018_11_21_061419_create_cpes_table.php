@@ -15,11 +15,11 @@ class CreateCPEsTable extends Migration
     {
         Schema::create('cpes', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('ConnectionRequestUser')->unique();
-            $table->string('ConnectionRequestPassword');
+            $table->string('ConnectionRequestUser')->nullable();
+            $table->string('ConnectionRequestPassword')->nullable();
             $table->string('ConnectionRequestURL')->nullable();
             $table->string('Manufacturer')->nullable();
-            $table->string('OUI')->nullable();
+            $table->string('OUI')->unique();
             $table->string('ProductClass')->nullable();
             $table->string('SerialNumber')->nullable();
             $table->string('HardwareVersion')->nullable();

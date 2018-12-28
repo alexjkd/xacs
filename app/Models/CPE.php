@@ -10,7 +10,6 @@ use App\Models\SoapActionStatus;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use stdClass;
 
@@ -85,9 +84,11 @@ class CPE extends Model implements ICpeContract
                 $result['content'] = SoapFacade::BuildInformResponse($data['ID']);
                 $result['code']=200;
                 $action->update([
+                    'cwmpid'=>$data['ID'],
                     'response'=>$result['content'],
                     'status'=> SoapActionStatus::STATUS_FINISHED,
                 ]);
+                //todo notify the ACS to send out the response
                 break;
             case SoapActionEvent::HTTP_AUTH:
                 $data = json_decode($action->getAttribute('data'),true);
@@ -108,16 +109,18 @@ class CPE extends Model implements ICpeContract
                     Log::info("CPE() auth with user blank");
                     response('',200);
                     $new_action = new SoapAction();
-                    //get new user and password
+                    //todo get new user and password
                     $data = array (
+                        'cwmpid'=>AcsFacade::acsGenerateCwmpdID(),
+                        'values'=>[
                         'Device.ManagementServer.Username'=>'08028E-08028EEF0B00',
                         'Device.ManagementServer.Password'=>'xwhSLiQAwOXlLeVX',
                         'Device.ManagementServer.URL'=>'http://58.162.32.33/cwmp/cwmp'
-                    );
+                    ]);
                     $new_action->setAttribute('event',SoapActionEvent::SET_PARAMETER);
                     $new_action->setAttribute('data',json_encode($data));
-                    $new_action->setAttribute('request',SoapFacade::BuildSetParameterRequest($data));
                     $this->action()->save($new_action);
+                    //todo: notify acs  to send out the request
                 }
                 else
                 {
@@ -126,8 +129,17 @@ class CPE extends Model implements ICpeContract
 
                 break;
             case SoapActionEvent::SET_PARAMETER:
-                //need to send request for the setting parameter
-
+                {
+                    $response = SoapFacade::ParseSetParameterResponse($action->getAttribute('response'));
+                    if ($response === SoapActionStatus::OK)
+                    {
+                        $action->update([
+                            'status' => SoapActionStatus::STATUS_FINISHED,
+                            ]);
+                    }
+                    $result['code'] = 200;
+                    $result['content'] = '';
+                }
                 break;
             default:
                 $result['code'] = 403;
@@ -170,10 +182,12 @@ class CPE extends Model implements ICpeContract
         }
 
         //TODO: Should generate a ReqestUsername and RequestPassword for the device accordingly
+        /*
         $this->setAttribute('ConnectionRequestUser',$cpe_info['DeviceId']['ProductClass']);
         $this->setAttribute('ConnectionRequestPassword',
                              password_hash($cpe_info['DeviceId']['SerialNumber'],
                              PASSWORD_DEFAULT));
+        */
         $this->save();
         $this->cpeInsertAction(SoapActionEvent::BOOTSTRAP);
 
@@ -189,15 +203,14 @@ class CPE extends Model implements ICpeContract
         $action = new SoapAction();
         $action->setAttribute('event',$event);
         $action->setAttribute('stage',SoapActionStage::STAGE_INITIAL);
-        $action->setAttribute('data',$data);
+        $action->setAttribute('data',json_encode($data));
 
         $this->action()->save($action);
     }
 
     public function cpeCleanReadyActions()
     {
-        $this->action()->select('id','fk_cpe_id','event','data','stage','status')
-            ->where('status',SoapActionStatus::STATUS_READY)
+        $this->action()->where('status',SoapActionStatus::STATUS_READY)
             ->delete();
     }
     /**
@@ -208,7 +221,7 @@ class CPE extends Model implements ICpeContract
         /*
          * need primary key and foreign key for updating
          * */
-        $actions = $this->action()->select('id','fk_cpe_id','event','data','stage','status')
+        $actions = $this->action()->select('id','cwmpid','fk_cpe_id','event','data','stage','status')
             ->where('status',SoapActionStatus::STATUS_READY)
             ->orderBy('id','desc')
             ->get();
@@ -224,7 +237,7 @@ class CPE extends Model implements ICpeContract
         /*
          * need primary key and foreign key for updating
          * */
-        $action = $this->action()->select('id','fk_cpe_id','event','data','stage','status')
+        $action = $this->action()->select('id','cwmpid','fk_cpe_id','event','data','stage','status')
             ->where('event',SoapActionEvent::HTTP_AUTH)
             ->where('status',SoapActionStatus::STATUS_READY)
             ->orderBy('id','desc')
@@ -237,7 +250,7 @@ class CPE extends Model implements ICpeContract
      * @param string $httpContent
      * @return array
      */
-    public function cpeStartActionChain(string $httpContent, string $authentication=null)
+    public function cpeStartActionChain(string $httpContent=null, string $authentication=null)
     {
         Log::info('Start the cpe action chain');
         $actions = $this->cpeGetReadyActions();
@@ -258,7 +271,7 @@ class CPE extends Model implements ICpeContract
             if($actions->isEmpty())
             {
                 $this->cpeInsertAction(SoapActionEvent::HTTP_AUTH,
-                    json_encode(array('authentication'=> $authentication)));
+                    array('authentication'=> $authentication));
             }
             else
             {
@@ -286,7 +299,6 @@ class CPE extends Model implements ICpeContract
 
         if ($action->actionGetDirection() == SoapActionDirection::REQUEST)
         {
-
             $action->setAttribute('request', $httpContent);
             //todo:set action data part according to the session type
             $action->setAttribute('data',
