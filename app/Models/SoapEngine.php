@@ -10,7 +10,6 @@ namespace App\Models;
 
 use App\Interfaces\IDataModelContract;
 use Illuminate\Support\Facades\File;
-use phpDocumentor\Reflection\Types\Integer;
 
 
 class SoapEngine
@@ -98,8 +97,8 @@ class SoapEngine
                     $type[]=$code;
                 }
             }
-            return $type;
         }
+        return $type;
     }
 
     public static function ParseInformRequest($soap)

@@ -9,8 +9,6 @@
 namespace Tests\Unit;
 
 use App\Models\Facades\AcsFacade;
-use App\Models\SoapActionStage;
-use App\Models\SoapActionStatus;
 use App\Models\SoapActionEvent;
 use App\Models\CPE;
 use App\Models\Facades\SoapFacade;
@@ -83,8 +81,8 @@ class CPETest extends TestCase
             ),
         );
 
-        $cpe = $this->app->build(CPE::class);
-
+        //$cpe = $this->app->build(CPE::class);
+        $cpe = new CPE();
         $cpe->cpeCreate($cpe_info);
         $this->assertDatabaseHas('cpes', [
             'Manufacturer'=>'NETGEAR',
@@ -199,7 +197,7 @@ class CPETest extends TestCase
      * @depends testCpeLackOfAuth
      * @return CPE
      */
-    public function testCpeStartActionWithBlankAuth($cpe)
+    public function testCpeStartActionWithBlankAuth(CPE $cpe)
     {
         $header = 'Basic ' . base64_encode(':');
         $request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
@@ -246,6 +244,8 @@ class CPETest extends TestCase
     {
         $expected_response = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
         $test_request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+        $expected_cwmpid = "1641837687";
+
         AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
         AcsFacade::getFacadeRoot()->makePartial();
 
@@ -261,6 +261,7 @@ class CPETest extends TestCase
             'fk_cpe_id'=>$cpe->getAttribute('id'),
             'request' =>$test_request,
             'response'=>$expected_response,
+            'cwmpid' => $expected_cwmpid,
         ]);
     }
     /**
@@ -270,6 +271,8 @@ class CPETest extends TestCase
     {
         $expected_response = file_get_contents(base_path('tests/soap/INFORM_RESPONSE.xml'));
         $test_request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
+        $expected_cwmpid = "1641837687";
+
         AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
         AcsFacade::getFacadeRoot()->makePartial();
 
@@ -285,6 +288,7 @@ class CPETest extends TestCase
             'fk_cpe_id'=>$cpe->getAttribute('id'),
             'request' =>$test_request,
             'response'=>$expected_response,
+            'cwmpid' => $expected_cwmpid,
         ]);
     }
 

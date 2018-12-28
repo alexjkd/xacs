@@ -5,11 +5,8 @@ namespace App\Models;
 use App\Interfaces\ICpeContract;
 use App\Models\Facades\AcsFacade;
 use App\Models\Facades\SoapFacade;
-use App\Models\SoapActionEvent;
-use App\Models\SoapActionStatus;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 use stdClass;
 
@@ -278,19 +275,6 @@ class CPE extends Model implements ICpeContract
                 $actions->first()->update(['data' =>
                     json_encode(array('authentication'=> $authentication))]);
             }
-            /*
-            try {
-                $action = $this->cpeHttpAuthActions();
-                $action->update(['data' =>
-                    json_encode(array('authentication'=> $authentication))]);
-            }catch (\Exception $e) {
-                if ($e instanceof ModelNotFoundException )
-                {
-                    $this->_actionInsert(SoapActionEvent::HTTP_AUTH,
-                        json_encode(array('authentication'=> $authentication)));
-                }
-            }
-            */
 
             $action = $this->cpeGetReadyActions()->first();
 
