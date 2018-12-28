@@ -168,9 +168,14 @@ class SoapTest extends TestCase
     {
         $soap = file_get_contents(base_path('tests/soap/SET_PARAMETERS_RESPONSE.xml'));
         $this->assertTrue(SoapFacade::ValidSoap($soap));
+        $expected_result = array(
+            'cwmpid' => "123456",
+            'status' => SoapEngine::STATUS_OK,
+        );
 
-        $status = SoapFacade::ParseSetParameterResponse($soap);
-        $this->assertEquals(SoapEngine::STATUS_OK,$status);
+        $result = SoapFacade::ParseSetParameterResponse($soap);
+
+        $this->assertEquals($expected_result,$result);
     }
 
     public function testSoapGetSoapType()

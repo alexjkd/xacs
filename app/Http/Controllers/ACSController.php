@@ -77,7 +77,6 @@ class ACSController extends Controller
                 Log::info('Login with blank user and response with 200 OK');
                 response('',200);
                 Log::info('Create the CPE and set next action to SetParameter for the credential to remote');
-                //TODO:Create CPE and build action chain
                 $this->cpe = new CPE();
                 $this->cpe->cpeCreate(SoapFacade::ParseInformRequest($request->getContent()));
                 return;

@@ -10,6 +10,7 @@ namespace App\Models;
 
 use App\Interfaces\IDataModelContract;
 use Illuminate\Support\Facades\File;
+use phpDocumentor\Reflection\Types\Integer;
 
 
 class SoapEngine
@@ -176,7 +177,13 @@ class SoapEngine
             ->SetParameterValuesResponse
             ->children()->Status;
 
-        return $status[0];
+        $cwmpid = $xml->children($ns_name[0],true)->Header->children($ns_name[1],true)
+            ->ID;
+        $data = array(
+            'cwmpid'=> (string)$cwmpid[0],
+            'status'=> (integer)$status[0],
+        );
+        return $data;
     }
 
     public static function BuildGetParameterRequest($data)
