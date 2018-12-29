@@ -96,6 +96,7 @@ class CPE extends Model implements ICpeContract
                     Log::warning('There is no http authentication headers, but ACS need auth.');
                     $result['code'] = 401;
                     $result['content'] ='';
+                    abort(401);
                     break;
                 }
 
@@ -117,7 +118,6 @@ class CPE extends Model implements ICpeContract
                     $new_action->setAttribute('event',SoapActionEvent::SET_PARAMETER);
                     $new_action->setAttribute('data',json_encode($data));
                     $this->action()->save($new_action);
-                    //todo: notify acs  to send out the request
                 }
                 else
                 {
@@ -127,22 +127,25 @@ class CPE extends Model implements ICpeContract
                 break;
             case SoapActionEvent::SET_PARAMETER:
                 {
+                    //todo if no 'request', notify ACS to send out the request and break
+
+                    //todo should find whether the cwmpid in response['cwmpid'] is exist or not
                     $response = SoapFacade::ParseSetParameterResponse($action->getAttribute('response'));
-                    if ($response === SoapActionStatus::OK)
+                    if ($response['status'] === SoapActionStatus::OK)
                     {
                         $action->update([
                             'status' => SoapActionStatus::STATUS_FINISHED,
                             ]);
+                        $result['code'] = 200;
+                        $result['content'] = '';
                     }
-                    $result['code'] = 200;
-                    $result['content'] = '';
+
                 }
                 break;
             default:
                 $result['code'] = 403;
                 $result['content'] ='';
         }
-
         return $result;
     }
 //-------------------------------------------------------------------------
@@ -185,6 +188,8 @@ class CPE extends Model implements ICpeContract
                              password_hash($cpe_info['DeviceId']['SerialNumber'],
                              PASSWORD_DEFAULT));
         */
+        $this->setAttribute('ConnectionRequestURL',
+            $cpe_info['ParameterList']['Device.ManagementServer.ConnectionRequestURL']);
         $this->save();
         $this->cpeInsertAction(SoapActionEvent::BOOTSTRAP);
 
@@ -280,11 +285,11 @@ class CPE extends Model implements ICpeContract
 
             goto do_action;
         }
-
+        // todo add hook functions for request and response in soap action item
+/*
         if ($action->actionGetDirection() == SoapActionDirection::REQUEST)
         {
             $action->setAttribute('request', $httpContent);
-            //todo:set action data part according to the session type
             $action->setAttribute('data',
                 json_encode(SoapFacade::ParseInformRequest($httpContent)));
         }
@@ -296,7 +301,7 @@ class CPE extends Model implements ICpeContract
         {
             Log::warning('The action direction is UNKNOWN');
         }
-
+*/
 do_action:
         $result = $this->_doAction($action);
 

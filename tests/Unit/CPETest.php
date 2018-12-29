@@ -24,28 +24,7 @@ class CPETest extends TestCase
     {
         parent::setUp();
     }
-/*
-    public function testCpeLogin()
-    {
-        $this->cpe = factory('App\Models\CPE')->create([
-            'ConnectionRequestUser'=>'test'
-        ]);
 
-        $user_test = array(
-            'name'=>'test',
-            'password'=>'secret',
-            'authentication'=>'Basic '. base64_encode('test:test'),
-        );
-        $user_invalid=array(
-            'name'=>'test',
-            'password'=>'secret1',
-            'authentication'=>'Basic '. base64_encode('test:test'),
-        );
-
-        $this->assertEquals(CPE::STATUS_SUCCEEDED, $this->cpe->cpeLogin($user_test));
-        $this->assertEquals(CPE::STATUS_FAILED, $this->cpe->cpeLogin($user_invalid));
-    }
-*/
     /**
      * @return CPE
      */
@@ -299,8 +278,9 @@ class CPETest extends TestCase
     public function testCpeSetParameterAction()
     {
         $response = file_get_contents(base_path('tests/soap/SET_PARAMETERS_RESPONSE.xml'));
+        $expected_cwmpid = "123456";
         AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
-        AcsFacade::shouldReceive('acsGenerateCwmpdID')->andReturn(123456);
+        AcsFacade::shouldReceive('acsGenerateCwmpdID')->andReturn($expected_cwmpid);
         AcsFacade::getFacadeRoot()->makePartial();
 
         $data = array (
@@ -312,10 +292,16 @@ class CPETest extends TestCase
             ]);
         $cpe = $this->testCpeCreate();
         $cpe->cpeInsertAction(SoapActionEvent::SET_PARAMETER,$data);
+        //todo notify ACS to sendout the request
 
         $result = $cpe->cpeStartActionChain($response);
 
-        $this->assertEquals(200, $result['code']);
+        $this->assertDatabaseHas('soap_actions',[
+            'fk_cpe_id'=>$cpe->getAttribute('id'),
+            'response'=>$response,
+            'cwmpid' => $expected_cwmpid,
+        ]);
+
     }
 
 

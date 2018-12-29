@@ -17,7 +17,7 @@ class CreateCPEsTable extends Migration
             $table->increments('id');
             $table->string('ConnectionRequestUser')->nullable();
             $table->string('ConnectionRequestPassword')->nullable();
-            $table->string('ConnectionRequestURL')->nullable();
+            $table->string('ConnectionRequestURL')->unique();
             $table->string('Manufacturer')->nullable();
             $table->string('OUI')->unique();
             $table->string('ProductClass')->nullable();
