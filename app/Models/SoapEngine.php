@@ -25,6 +25,7 @@ class SoapEngine
 
     public function __construct()
     {
+        //todo need to remove this function since it is a full static class, it is not be instantiated
         self::$templateParameterStruct = File::get(base_path('app/Models/xml/ParameterStruct.xml'));
         self::$templateSetParameterRequest = File::get(base_path('app/Models/xml/SetParamerterRequest.xml'));
         self::$templateInformResponse = File::get(base_path('app/Models/xml/InformResponse.xml'));

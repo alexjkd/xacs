@@ -40,3 +40,4 @@ class SoapActionDirection extends Enum
     const REQUEST = 0;
     const RESPONSE = 1;
 }
+

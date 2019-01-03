@@ -5,6 +5,9 @@ namespace App\Models;
 use App\Interfaces\ICpeContract;
 use App\Models\Facades\AcsFacade;
 use App\Models\Facades\SoapFacade;
+use App\Models\Actions\BOOT;
+use App\Models\Actions\BOOTSTRAP;
+use App\Models\Actions\HTTP_AUTH;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
@@ -54,100 +57,6 @@ class CPE extends Model implements ICpeContract
 
         return $validated;
     }
-
-    private function _doAction(SoapAction $action)
-    {
-        $result = array(
-            'code' => 500,
-            'content' =>'',
-        );
-
-        switch ($action->getAttribute('event'))
-        {
-            case SoapActionEvent::BOOTSTRAP:
-            case SoapActionEvent::BOOT:
-                if(empty($action->getAttribute('request')))
-                {
-                    Log::warning('the http content is empty which will cause an abnormal record in session log');
-                }
-                $data = json_decode($action->getAttribute('data'),true);
-                if(empty($data))
-                {
-                    Log::error('parse the http content failed!');
-                    $result['code'] = 500;
-                    $result['content'] ='parse the http content failed.';
-                    break;
-                }
-                $result['content'] = SoapFacade::BuildInformResponse($data['ID']);
-                $result['code']=200;
-                $action->update([
-                    'cwmpid'=>$data['ID'],
-                    'response'=>$result['content'],
-                    'status'=> SoapActionStatus::STATUS_FINISHED,
-                ]);
-                //todo notify the ACS to send out the response
-                break;
-            case SoapActionEvent::HTTP_AUTH:
-                $data = json_decode($action->getAttribute('data'),true);
-                $http_authentication = $data['authentication'];
-                $blankAuthentication = 'Basic ' . base64_encode(':');
-                if ( empty($http_authentication) )
-                {
-                    Log::warning('There is no http authentication headers, but ACS need auth.');
-                    $result['code'] = 401;
-                    $result['content'] ='';
-                    abort(401);
-                    break;
-                }
-
-                if ( $http_authentication === $blankAuthentication )
-                {
-                    $result['code'] = 200;
-                    $result['content'] ='';
-                    Log::info("CPE() auth with user blank");
-                    response('',200);
-                    $new_action = new SoapAction();
-                    //todo get new user and password
-                    $data = array (
-                        'cwmpid'=>AcsFacade::acsGenerateCwmpdID(),
-                        'values'=>[
-                        'Device.ManagementServer.Username'=>'08028E-08028EEF0B00',
-                        'Device.ManagementServer.Password'=>'xwhSLiQAwOXlLeVX',
-                        'Device.ManagementServer.URL'=>'http://58.162.32.33/cwmp/cwmp'
-                    ]);
-                    $new_action->setAttribute('event',SoapActionEvent::SET_PARAMETER);
-                    $new_action->setAttribute('data',json_encode($data));
-                    $this->action()->save($new_action);
-                }
-                else
-                {
-                    //todo if auth failed, need to response the 401 and clean the action chain.
-                }
-
-                break;
-            case SoapActionEvent::SET_PARAMETER:
-                {
-                    //todo if no 'request', notify ACS to send out the request and break
-
-                    //todo should find whether the cwmpid in response['cwmpid'] is exist or not
-                    $response = SoapFacade::ParseSetParameterResponse($action->getAttribute('response'));
-                    if ($response['status'] === SoapActionStatus::OK)
-                    {
-                        $action->update([
-                            'status' => SoapActionStatus::STATUS_FINISHED,
-                            ]);
-                        $result['code'] = 200;
-                        $result['content'] = '';
-                    }
-
-                }
-                break;
-            default:
-                $result['code'] = 403;
-                $result['content'] ='';
-        }
-        return $result;
-    }
 //-------------------------------------------------------------------------
     public static function make(stdClass $object)
     {
@@ -191,7 +100,7 @@ class CPE extends Model implements ICpeContract
         $this->setAttribute('ConnectionRequestURL',
             $cpe_info['ParameterList']['Device.ManagementServer.ConnectionRequestURL']);
         $this->save();
-        $this->cpeInsertAction(SoapActionEvent::BOOTSTRAP);
+        $this->cpeInsertAction(new BOOTSTRAP());
 
     }
 
@@ -200,13 +109,8 @@ class CPE extends Model implements ICpeContract
         return $this->hasMany(SoapAction::class,'fk_cpe_id','id');
     }
 
-    public function cpeInsertAction($event, $data=null)
+    public function cpeInsertAction(SoapAction $action)
     {
-        $action = new SoapAction();
-        $action->setAttribute('event',$event);
-        $action->setAttribute('stage',SoapActionStage::STAGE_INITIAL);
-        $action->setAttribute('data',json_encode($data));
-
         $this->action()->save($action);
     }
 
@@ -256,7 +160,6 @@ class CPE extends Model implements ICpeContract
     {
         Log::info('Start the cpe action chain');
         $actions = $this->cpeGetReadyActions();
-        $result = array();
 
         if($actions->isEmpty())
         {
@@ -272,40 +175,13 @@ class CPE extends Model implements ICpeContract
             $actions = $this->cpeHttpAuthActions();
             if($actions->isEmpty())
             {
-                $this->cpeInsertAction(SoapActionEvent::HTTP_AUTH,
-                    array('authentication'=> $authentication));
-            }
-            else
-            {
-                $actions->first()->update(['data' =>
-                    json_encode(array('authentication'=> $authentication))]);
+                $this->cpeInsertAction(new HTTP_AUTH(
+                    array('authentication'=> $authentication)));
             }
 
             $action = $this->cpeGetReadyActions()->first();
-
-            goto do_action;
         }
-        // todo add hook functions for request and response in soap action item
-/*
-        if ($action->actionGetDirection() == SoapActionDirection::REQUEST)
-        {
-            $action->setAttribute('request', $httpContent);
-            $action->setAttribute('data',
-                json_encode(SoapFacade::ParseInformRequest($httpContent)));
-        }
-        else if ($action->actionGetDirection() == SoapActionDirection::RESPONSE)
-        {
-            $action->setAttribute('response', $httpContent);
-        }
-        else
-        {
-            Log::warning('The action direction is UNKNOWN');
-        }
-*/
-do_action:
-        $result = $this->_doAction($action);
-
-        return $result;
+        return $action->Handler($httpContent, $authentication);
     }
 
 }
