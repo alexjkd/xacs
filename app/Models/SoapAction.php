@@ -8,6 +8,8 @@ use App\Models\Actions\HTTP_AUTH;
 use App\Models\Actions\SET_PARAMETER;
 use Illuminate\Database\Eloquent\Model;
 
+use Illuminate\Support\Facades\Log;
+
 class SoapAction extends Model
 {
     protected $table = 'soap_actions';
@@ -20,29 +22,7 @@ class SoapAction extends Model
 
     public function cpe()
     {
-        return $this->belongsTo(CPE::class,'cpe_id','id');
-    }
-
-    /**
-     * @return int
-     */
-    public function actionGetDirection()
-    {
-        $direction = SoapActionDirection::UNKNOWN;
-
-        switch ($this->getAttribute('event'))
-        {
-            case SoapActionEvent::BOOT:
-            case SoapActionEvent::BOOTSTRAP:
-                $direction = SoapActionDirection::REQUEST;
-                break;
-            case SoapActionEvent::SET_PARAMETER:
-                $direction = SoapActionDirection::RESPONSE;
-                break;
-            default:
-                break;
-        }
-        return $direction;
+        return $this->belongsTo(CPE::class,'fk_cpe_id','id');
     }
 
 
@@ -78,12 +58,9 @@ class SoapAction extends Model
      * @param string $authentication
      * @return array
      */
-    public function Handler($httpContent = null, $authentication = null)
+    public function HandlerOnAcs($httpContent = null, $authentication = null)
     {
-
+        Log::warning('the action has not set a handler for ACS.');
+        return null;
     }
-    //abstract public function GetDirection(string $httpContent);
-
-    //abstract public function RequestHandler();
-    //abstract public function ResponseHandler();
 }

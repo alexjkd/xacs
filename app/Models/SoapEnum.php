@@ -34,10 +34,3 @@ class SoapActionStage extends Enum
     const STAGE_USER = 1;
 }
 
-class SoapActionDirection extends Enum
-{
-    const UNKNOWN = -1;
-    const REQUEST = 0;
-    const RESPONSE = 1;
-}
-

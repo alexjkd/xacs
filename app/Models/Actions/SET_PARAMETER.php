@@ -44,19 +44,12 @@ class SET_PARAMETER extends SoapAction
         }
     }
 
-    public function GetDirection(string $httpContent)
-    {
-        // TODO: Implement GetDirection() method.
-    }
-
-    public function Handler($httpContent = null, $authentication = null)
+    public function HandlerOnAcs($httpContent = null, $authentication = null)
     {
         $result = array(
             'code' => 500,
             'content' =>'',
         );
-        //todo if no 'request', notify ACS to send out the request and break
-
         //todo should find whether the cwmpid in response['cwmpid'] is exist or not
         if(empty($httpContent))
         {
@@ -74,15 +67,5 @@ class SET_PARAMETER extends SoapAction
             $result['content'] = '';
         }
         return $result;
-    }
-
-    public function ResponseHandler()
-    {
-
-    }
-
-    public function RequestHandler()
-    {
-
     }
 }

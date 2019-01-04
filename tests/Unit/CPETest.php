@@ -142,6 +142,7 @@ class CPETest extends TestCase
             'data'=> $expected_data,
         ]);
     }
+    //TODO need to draw a flow to complete the cases for authentication
 //--------- CPE Authentication Test --------------------------------------------------
     /**
      * @depends testCpeCreate

@@ -4,8 +4,6 @@ namespace App\Models;
 
 use App\Interfaces\ICpeContract;
 use App\Models\Facades\AcsFacade;
-use App\Models\Facades\SoapFacade;
-use App\Models\Actions\BOOT;
 use App\Models\Actions\BOOTSTRAP;
 use App\Models\Actions\HTTP_AUTH;
 
@@ -15,10 +13,7 @@ use stdClass;
 
 class CPE extends Model implements ICpeContract
 {
-    const STATUS_FAILED=401;
-    const STATUS_SUCCEEDED=200;
-
-    /**
+     /**
      * @var array
      */
     protected $fillable = [
@@ -90,13 +85,17 @@ class CPE extends Model implements ICpeContract
             $this->setAttribute($key, $value);
         }
 
-        //TODO: Should generate a ReqestUsername and RequestPassword for the device accordingly
-        /*
-        $this->setAttribute('ConnectionRequestUser',$cpe_info['DeviceId']['ProductClass']);
-        $this->setAttribute('ConnectionRequestPassword',
-                             password_hash($cpe_info['DeviceId']['SerialNumber'],
-                             PASSWORD_DEFAULT));
-        */
+        if(AcsFacade::acsGetCPEAuthable())
+        {
+            //TODO: Should generate a ReqestUsername and RequestPassword for the device accordingly
+            /*
+            $this->setAttribute('ConnectionRequestUser',$cpe_info['DeviceId']['ProductClass']);
+            $this->setAttribute('ConnectionRequestPassword',
+                                 password_hash($cpe_info['DeviceId']['SerialNumber'],
+                                 PASSWORD_DEFAULT));
+            */
+        }
+
         $this->setAttribute('ConnectionRequestURL',
             $cpe_info['ParameterList']['Device.ManagementServer.ConnectionRequestURL']);
         $this->save();
@@ -164,7 +163,7 @@ class CPE extends Model implements ICpeContract
         if($actions->isEmpty())
         {
             Log::warning('No action items to do for this CPE.');
-            return $result;
+            return null;
         }
         $action = $actions->first();
 
@@ -181,7 +180,7 @@ class CPE extends Model implements ICpeContract
 
             $action = $this->cpeGetReadyActions()->first();
         }
-        return $action->Handler($httpContent, $authentication);
+        return $action->HandlerOnAcs($httpContent, $authentication);
     }
 
 }

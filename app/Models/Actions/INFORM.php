@@ -17,12 +17,7 @@ use Illuminate\Support\Facades\Log;
 
 abstract class INFORM extends SoapAction
 {
-    public function GetDirection(string $httpContent)
-    {
-        // TODO: Implement GetDirection() method.
-    }
-
-    public function Handler($httpContent = null, $authentication = null)
+    public function HandlerOnAcs($httpContent = null, $authentication = null)
     {
         $result = array(
             'code' => 500,

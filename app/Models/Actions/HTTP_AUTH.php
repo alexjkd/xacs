@@ -8,7 +8,6 @@
 
 namespace App\Models\Actions;
 
-
 use App\Models\CPE;
 use App\Models\Facades\AcsFacade;
 use App\Models\SoapAction;
@@ -39,15 +38,10 @@ class HTTP_AUTH extends SoapAction
         }
     }
 
-    public function GetDirection(string $httpContent)
-    {
-        // TODO: Implement GetDirection() method.
-    }
-
     /**
      * @return array|void
      */
-    public function Handler($httpContent = null, $authentication = null)
+    public function HandlerOnAcs($httpContent = null, $authentication = null)
     {
         $result = array(
             'code' => 500,
@@ -74,16 +68,17 @@ class HTTP_AUTH extends SoapAction
             $result['content'] ='';
             Log::info("CPE() auth with user blank");
             response('',200);
-            $new_action = new SoapAction();
-            //todo get new user and password
+            $cpe = $this->cpe()->get()->first();
+            $username = $cpe->getAttribute('ConnectionRequestUser');
+            $password = $cpe->getAttribute('ConnectionRequestPassword');
             $data = array (
-                    'Device.ManagementServer.Username'=>'08028E-08028EEF0B00',
-                    'Device.ManagementServer.Password'=>'xwhSLiQAwOXlLeVX',
+                    'Device.ManagementServer.Username' => $username,
+                    'Device.ManagementServer.Password' => $password,
                     'Device.ManagementServer.URL'=>'http://58.162.32.33/cwmp/cwmp'
             );
             $set_parameter = new SET_PARAMETER(['data'=>$data, 'cwmpid'=>AcsFacade::acsGenerateCwmpdID()]);
-            $cpe = CPE::find($this->getAttribute('fk_cpe_id'));
             $cpe->action()->save($set_parameter);
+            //TODO: Notify ACS with this action ask ACS to send it out
         }
         else
         {
@@ -92,14 +87,5 @@ class HTTP_AUTH extends SoapAction
             //todo if auth failed, need to response the 401 and clean the action chain.
         }
         return $result;
-    }
-    public function ResponseHandler()
-    {
-
-    }
-
-    public function RequestHandler()
-    {
-
     }
 }
