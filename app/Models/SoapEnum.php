@@ -21,7 +21,6 @@ class SoapActionStatus extends Enum
 class SoapActionEvent extends Enum
 {
     const UNKNOWN = -2;
-    const HTTP_AUTH = -1;
     const BOOTSTRAP = 0;
     const BOOT = 1;
     const EVENT_GETPARAMETER = 2;

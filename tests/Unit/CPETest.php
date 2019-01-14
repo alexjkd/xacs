@@ -9,14 +9,12 @@
 namespace Tests\Unit;
 
 use App\Models\Actions\BOOT;
-use App\Models\Actions\BOOTSTRAP;
-use App\Models\Actions\HTTP_AUTH;
+use App\Models\Actions\BOOTSTRAP_BOOT;
 use App\Models\Actions\SET_PARAMETER;
 use App\Models\Facades\AcsFacade;
 use App\Models\SoapActionEvent;
 use App\Models\CPE;
 use App\Models\Facades\SoapFacade;
-use App\Models\SoapAction;
 
 use Tests\TestCase;
 
@@ -83,7 +81,6 @@ class CPETest extends TestCase
     public function testCpeGetReadyActions($cpe)
     {
         $initialEvents = array(
-            SoapActionEvent::HTTP_AUTH,
             SoapActionEvent::BOOTSTRAP,
             SoapActionEvent::BOOT,
         );
@@ -133,12 +130,12 @@ class CPETest extends TestCase
         $data = array('authentication'=> $authentication);
         $expected_data = json_encode(array('authentication'=> $authentication));
 
-        $http_auth = new HTTP_AUTH(['data'=>$data]);
-        $cpe->cpeInsertAction($http_auth);
+        $boot = new BOOT(['data'=>$data]);
+        $cpe->cpeInsertAction($boot);
 
         $this->assertDatabaseHas('soap_actions',[
             'fk_cpe_id'=>$cpe->getAttribute('id'),
-            'event' => SoapActionEvent::HTTP_AUTH,
+            'event' => SoapActionEvent::BOOT,
             'data'=> $expected_data,
         ]);
     }
@@ -187,7 +184,6 @@ class CPETest extends TestCase
         $request = file_get_contents(base_path('tests/soap/INFORM_REQUEST.xml'));
 
         $setparameter_cwmpid = "123456";
-        AcsFacade::shouldReceive('acsGetCPEAuthable')->andReturn(false);
         AcsFacade::shouldReceive('acsGenerateCwmpdID')->andReturn($setparameter_cwmpid);
         AcsFacade::getFacadeRoot()->makePartial();
 
@@ -239,7 +235,7 @@ class CPETest extends TestCase
         $cpe->cpeCleanReadyActions();
 
         $data = SoapFacade::ParseInformRequest($test_request);
-        $bootstrap_action = new BOOTSTRAP($data);
+        $bootstrap_action = new BOOTSTRAP_BOOT($data);
         $cpe->cpeInsertAction($bootstrap_action);
 
         $result = $cpe->cpeStartActionChain($test_request);

@@ -10,10 +10,11 @@ namespace App\Models\Actions;
 
 use App\Models\SoapActionEvent;
 use App\Models\SoapActionStage;
+
 use Illuminate\Support\Facades\Log;
 
 
-class BOOTSTRAP extends INFORM
+class BOOTSTRAP_BOOT extends INFORM
 {
     public static function boot()
     {
@@ -25,7 +26,6 @@ class BOOTSTRAP extends INFORM
     }
 
     public function __construct($attributes = array())
-
     {
         parent::__construct();
         $this->setAttribute('event',SoapActionEvent::BOOTSTRAP);

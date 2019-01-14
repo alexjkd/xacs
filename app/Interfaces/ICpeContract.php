@@ -12,6 +12,4 @@ namespace App\Interfaces;
 interface ICpeContract
 {
     public function cpeCreate($cpe_info);
-    //public function cpeLogin($credential);
-    //public function cpeHandleSoap($soap);
 }

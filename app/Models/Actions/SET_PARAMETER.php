@@ -44,7 +44,7 @@ class SET_PARAMETER extends SoapAction
         }
     }
 
-    public function HandlerOnAcs($httpContent = null, $authentication = null)
+    public function HandleResponse($httpContent = null, $authentication = null)
     {
         $result = array(
             'code' => 500,
@@ -68,4 +68,10 @@ class SET_PARAMETER extends SoapAction
         }
         return $result;
     }
+
+    public function PrepareRequest($data = null)
+    {
+
+    }
+
 }

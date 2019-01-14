@@ -59,5 +59,8 @@ class ACS extends Model
         return $this->cpes->first();
     }
 
-
+    public function acsSendRequest(SoapAction $action)
+    {
+        $soap = $action->PrepareRequest($action->getAttributes('data'));
+    }
 }
